@@ -3,7 +3,7 @@ project(ime C ASM)
 
 set(CMAKE_C_STANDARD 11)
 
-add_library(mbedtls-local mbedtls/library/sha256.c)
+add_library(mbedtls-local mbedtls/library/chachapoly.c mbedtls/library/chacha20.c mbedtls/library/poly1305.c)
 target_include_directories(mbedtls-local PUBLIC mbedtls/include)
 target_compile_definitions(mbedtls-local PUBLIC MBEDTLS_CONFIG_FILE="${CMAKE_CURRENT_SOURCE_DIR}/mbedtls_config.h")
 target_compile_options(mbedtls-local PRIVATE -Os)
