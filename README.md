@@ -64,3 +64,64 @@ compiled using UPMEM's most recent (2025.1) SDK.
 | Implementation | Instructions |   Cycles | Estimated Speed per Thread |
 |:--------------:|-------------:|---------:|---------------------------:|
 |    mbedtls     |      1584880 | 18144736 |                  154 KiB/s |
+
+## Loading Trusted Sections
+
+The function implementing extra code loading has to be implemented in a very
+specific fashion. It has to provide the following properties:
+
+1. There is exactly one entry point. Jumps to any other point will not result
+   in behavior that would expose secrets or load third party code.
+2. Assuming other threads are running, they should not be able to observe the
+   loaders actions or impact them.
+3. Code loaded into IRAM is verified before returning to the user.
+
+The first point can be implemented by loading the key into some registers
+using immediate load instructions. Since IRAM cannot be read, the key
+won't be known to any other party. Registers are also threat private,
+others won't be able to access them. At every critical point, these values
+can be compared to the original. If they do not match, the function returns
+after clearing these special registers.
+
+The easiest and most practical way to solve point two would be to stop
+every thread but the first. This is generally possible, UPMEM provides
+the instruction `clr_run` which should allow stopping threads. Though
+at least in UPMEM's debugger, this instruction seemed to cause some issues,
+leading to the debugger reporting a lost connection to the DPU. When single
+stepping instructions however, everything seems to work in order. There
+may also be the possibility, that settings run-bits of threads currently
+processed in the DPU's pipeline cannot be done.
+
+This can be enforced by loading code both into WRAM and IRAM,
+checking that all Poly1305 MACs in WRAM are correct and loading known
+benign code into IRAM should they be incorrect. This
+step only works if no client code is running in parallel, otherwise it
+could call IRAM before the checks are done.
+
+### Loading Schedule
+
+1. Load 256-bit key into 8 registers
+2. Shut down all threads except for the first one, without writing the key
+   to memory.
+3. Load IV from MRAM and generate poly1305 one time key.
+4. Repeat for all instructions
+    1. Load a single instruction into WRAM and IRAM and WRAM again. Fault
+       if the WRAM values are not equal. Check key registers to prevent ROP.
+       Fault on failure.
+    2. Feed instruction into poly1305 to compute final checksum.
+5. Verify MAC, clear key registers and return. On failure, fault.
+
+Within this schedule, only the thread shutdowns are still potentially
+not working. Using an AEAD (like Chacha20-Poly1305) should not be an issue,
+especially because this pattern allows using memory for temporary data
+involved in crypto.
+
+This pattern should be resilient against an attacker than can jump to
+arbitrary addresses. They would either want to extract the key, or
+want to use `ldmai` part of step 3.
+
+Jumping to step 3's `ldmai` instruction won't succeed, because afterwards
+the key registers are checked against known good values. Since the attacker
+does not possess the key, this check fails and the DPU faults. Assuming
+other attacker threads are running, they could technically execute the
+malicious instruction before the initial threat faults. 

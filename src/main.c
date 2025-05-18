@@ -1,28 +1,34 @@
-#include <perfcounter.h>
-#include <mbedtls/chachapoly.h>
+#include <defs.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <stdbool.h>
 
-const uint8_t key[32];
-const uint8_t iv[12];
-uint8_t data[8096];
-uint8_t tag[16];
+/**
+ * @brief start a specific DPU thread
+ * @param tid number of the thread
+ * @return 0 if the thread was not running, 1 otherwise.
+ */
+extern bool boot_thread_num(uint8_t tid);
 
-void mbedtls_platform_zeroize(void *buf, size_t len) {
-    volatile uint8_t* data = (volatile void*) buf;
-
-    for (size_t i = 0; i < len; i++) {
-        data[i] = 0;
-    }
-}
+/**
+ * clear the run bits of all threads but 0
+ * @return state of the run bits after the first and before the second clear step
+ */
+extern uint16_t clear_run_bits(void);
 
 int main(void) {
-    mbedtls_chachapoly_context ctx;
+    if (me() == 0) {
+        for (int i = 1; i < 16; ++i) {
+            boot_thread_num(i);
+        }
 
-    mbedtls_chachapoly_init(&ctx);
-    mbedtls_chachapoly_setkey(&ctx, key);
+        for (volatile int i = 0; i < 1000; ++i) {}
 
-    perfcounter_config(COUNT_CYCLES, true);
-    mbedtls_chachapoly_encrypt_and_tag(&ctx, sizeof(data), iv, NULL, 0, data, data, tag);
+        uint16_t bits = clear_run_bits();
+        printf("RunBits: 0x%04x\n", bits);
+    } else {
+        while (1) {}
+    }
 
-    perfcounter_t count = perfcounter_get();
-    return count & 0xF;
+    return 0;
 }
