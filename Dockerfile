@@ -20,4 +20,8 @@ RUN wget http://sdk-releases.upmem.com/2025.1.0/debian_10/upmem_2025.1.0_amd64.d
     apt-get update && \
     apt-get install -y ./upmem_2025.1.0_amd64.deb
 
+COPY ./tools/dpurun.c /src/dpurun.c
+
+RUN clang `pkg-config --cflags dpu` -o /usr/bin/dpurun /src/dpurun.c `pkg-config --libs dpu`
+
 CMD bash
