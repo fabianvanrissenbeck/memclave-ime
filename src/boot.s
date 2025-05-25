@@ -1,80 +1,80 @@
 .text
 .globl __bootstrap
-.globl boot_slave_threads
-.globl kill_slave_threads
+.globl __thread_stop
+.globl thrd_get_state
+.globl thrd_boot_all
 
 __bootstrap:
-    sub zero, 15, id, mi, fault_to_many_threads
-    xor zero, id, 15, z, stop_to_entry
-    clr_run id, 1, false, 0x0
-    boot id, 1, false, 0x0
-    xor zero, id, 0, z, __entry_master
+    xor zero, id, 0, z, continue_bootstrap
+    stop t, __thread_stop
 
-stop_to_entry:
-    sw id4, thread_state_buf, 0
-    stop t, __entry_slave
+continue_bootstrap:
+    move r0, 0x1
 
+initial_boot_loop:
+    boot r0, 0x0
+    add r0, r0, 0x1
+    xor zero, r0, NR_TASKLETS, nz, initial_boot_loop
 
-__entry_master:
     move r22, __sys_stack_thread_0
     call r23, main
     stop t, __bootstrap
 
-__entry_slave:
+
+__thread_stop:
     lsl r22, id, 9
     add r22, r22, __sys_stack_thread_0
-    sw id4, thread_state_buf, 1
-    call r23, slave_thread_main
-    sw id4, thread_state_buf, 0
-    stop t, __entry_slave
+    call r23, main
+    stop t, __thread_stop
 
-boot_slave_threads:
-    move r0, 0x1
 
-bst_loop:
-    resume r0, 0, false, 0x0
-    add r0, r0, 0x1
-    xor zero, r0, 16, nz, bst_loop
+thrd_boot_all:
+    move r0, lneg
+    xor zero, id, 0, nz, thrd_boot_all_exit
+    move r1, 0x1
+
+thrd_boot_all_loop:
+    resume r1, 0, false, 0x0
+    add r1, r1, 0x1
+    xor zero, r1, NR_TASKLETS, nz, thrd_boot_all_loop
 
     move r0, 0x0
-    jump r23
 
-kill_slave_threads:
-
-    clr_run id, 1, false, 0x0
-    clr_run id, 2, false, 0x0
-    clr_run id, 3, false, 0x0
-    clr_run id, 4, false, 0x0
-    clr_run id, 5, false, 0x0
-    clr_run id, 6, false, 0x0
-    clr_run id, 7, false, 0x0
-    clr_run id, 8, false, 0x0
-    clr_run id, 9, false, 0x0
-    clr_run id, 10, false, 0x0
-    clr_run id, 11, false, 0x0
-    clr_run id, 12, false, 0x0
-    clr_run id, 13, false, 0x0
-    clr_run id, 14, false, 0x0
-    clr_run id, 15, false, 0x0
-
-    boot id, 1, false, 0x0
-    boot id, 2, false, 0x0
-    boot id, 3, false, 0x0
-    boot id, 4, false, 0x0
-    boot id, 5, false, 0x0
-    boot id, 6, false, 0x0
-    boot id, 7, false, 0x0
-    boot id, 8, false, 0x0
-    boot id, 9, false, 0x0
-    boot id, 10, false, 0x0
-    boot id, 11, false, 0x0
-    boot id, 12, false, 0x0
-    boot id, 13, false, 0x0
-    boot id, 14, false, 0x0
-    boot id, 15, false, 0x0
-
+thrd_boot_all_exit:
     jump r23
 
 
-fault_to_many_threads:
-    fault 0x3
+thrd_get_state:
+    move r0, zero
+    xor zero, id, 0, nz, thrd_get_state_exit
+
+    move r0, NR_TASKLETS - 1
+
+thrd_get_state_loop_1:
+    boot r0, 0, false, 0x0
+    sub r0, r0, 1, nz, thrd_get_state_loop_1
+
+    move r0, 0x10000
+
+thrd_get_state_loop_2:
+    sub r0, r0, 1, nz, thrd_get_state_loop_2
+
+    move r0, NR_TASKLETS - 1
+    move r1, 0x0
+
+thrd_get_state_loop_3:
+    boot r0, 0, z, not_running
+    or r1, r1, 0x1
+not_running:
+    lsl r1, r1, 1
+    sub r0, r0, 1, nz, thrd_get_state_loop_3
+
+    move r0, 0x10000
+
+thrd_get_state_loop_4:
+    sub r0, r0, 1, nz, thrd_get_state_loop_4
+
+    or r0, r1, 1
+
+thrd_get_state_exit:
+    jump r23
