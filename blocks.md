@@ -4,8 +4,9 @@ A small trusted loader is deployed to each DPU at boot time. Functionality not
 included in this loader is provided by blocks. A block is effectively a scaled
 down DPU kernel with restricted capabilities. A block is authenticated either
 with the system key (deployed by the hypervisor at boot time, static and protected)
-or with a user provided key that is installed by a block. Blocks that do not fall
-into these categories will not be loaded.
+or with a user provided key that is installed by another block. Blocks that are
+not authenticated either with the system or the user key will not be loaded
+and executed.
 
 Each block defines an input-space (in bytes), an output-space (in bytes) and the
 (MRAM)-address as well as the MAC of the next block to be executed. These
@@ -102,3 +103,23 @@ performs the following actions:
 + Copy the output buffer to the input buffer.
 + Load the next block according to the next block address and next block MAC values
   using the secure loading procedure.
+
+## Properties
+
++ Blocks can be strongly bound together. One block can ensure than only one trusted
+  block may run after it. This ensures that outputs are only handled by trusted 
+  code.
++ Blocks can be kept fully confidential. While in MRAM, a block may be fully
+  encrypted. We're doing this with the key exchange block for example.
++ System and user blocks are handled by the same underlying core loader. This
+  reduces the amount of vulnerable loading code and complexity significantly.
+  This also allows easier verification of system components, because they
+  are more strongly decoupled than in a system that keeps them all in the core.
+  Vulnerabilities in system components do not effect the integrity of the core
+  loader, system components have the same restrictions as user ones, they for
+  example are not allowed to use the banned instructions.
+
+## Current or not yet Fully Solved Issues
+
++ Preventing ROP to `ldmai` gadget if more than one malicious threat exists.
++ Checking the state of all threads (reasonably sure I can do this)
