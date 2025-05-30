@@ -11,7 +11,9 @@ int main(int argc, char** argv) {
     DPU_ASSERT(dpu_launch(set, DPU_SYNCHRONOUS));
 
     DPU_FOREACH(set, dpu) {
-        DPU_ASSERT(dpu_log_read(dpu, stdout));
+        if (dpu_log_read(dpu, stdout) != DPU_OK) {
+            printf("No logging symbols found.\n");
+        }
     }
 
     DPU_ASSERT(dpu_free(set));

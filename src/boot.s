@@ -16,14 +16,14 @@ initial_boot_loop:
     add r0, r0, 0x1
     xor zero, r0, NR_TASKLETS, nz, initial_boot_loop
 
-    move r22, __sys_stack_thread_0
+    move r22, __ime_stack_start
     call r23, main
     stop t, __bootstrap
 
 
 __thread_stop:
     lsl r22, id, 9
-    add r22, r22, __sys_stack_thread_0
+    add r22, r22, __ime_stack_start
     call r23, main
     stop t, __thread_stop
 

@@ -14,7 +14,8 @@ RUN apt-get update && \
         libnuma-dev \
         gdb \
         default-jdk \
-        libudev-dev
+        libudev-dev \
+        xxd
 
 RUN wget http://sdk-releases.upmem.com/2025.1.0/debian_10/upmem_2025.1.0_amd64.deb && \
     apt-get update && \

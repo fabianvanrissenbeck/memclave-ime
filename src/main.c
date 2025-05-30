@@ -1,28 +1,29 @@
-#include "boot.h"
+#include "global.h"
+#include "core.h"
 
-#include <defs.h>
-#include <stdio.h>
+#include <mram.h>
 
-static void waitcycles(uint32_t n) {
-    for (volatile uint32_t i = 0; i < n; i++) {}
-}
-
-static void slave_main(void) {
-    if ((me() & 1) == 0) {
-        waitcycles(100000);
-    }
-
-    printf("[Thread %d] thrd_get_state() = %04x\n", me(), thrd_get_state());
-}
+__attribute__((aligned(8)))
+__attribute__((section(".data.persistent")))
+uint32_t buffer[16 + 2] = {
+    [0] = 0xA5A5A5A5,
+    [10] = 1,
+    [11] = 0,
+#if 1
+    [16] = 0x20300000,
+    [17] = 0x00007e63
+#else
+    [16] = 0x20000000,
+    [17] = 0x00007ef3,
+#endif
+};
 
 int main(void) {
-    if (me() == 0) {
-        printf("thrd_boot_all() = %d\n", thrd_boot_all());
+    extern __mram uint64_t __ime_swap_start[];
 
-        waitcycles(10000);
+    mram_write(buffer, __ime_swap_start, sizeof(buffer));
+    ime_sk_addr = &__ime_swap_start[0];
 
-        printf("thrd_get_state() = %04x\n", thrd_get_state());
-    } else {
-        slave_main();
-    }
+    core_replace_sk();
+    return 0;
 }

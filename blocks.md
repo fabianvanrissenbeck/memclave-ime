@@ -61,7 +61,7 @@ private key (not the system key), so this block has to be encrypted when in MRAM
    the block loading block as the next block or some other block already in MRAM
    as the next block.
 
-## Block Structure
+## Subkernel Structure
 
 A block (while in MRAM) is one continous data structure (just like an ELF file)
 that stores metadata and data on how to authenticate, decrypt and load a block on a
@@ -69,30 +69,40 @@ DPU. We probably need to write a simple ELF->Block conversion script.
 
 ### Header
 
-| Name | Description | Size |
-|:-----|:------------|-----:|
-| MAC | MAC used to authenticate the block. | 16 Byte |
-| IV | IV used for encryption and authentication. | 12 Byte |
-| Size AAD | Amount of AAD (authenticated additional data - authenticated but not encrypted) to expect. | 4 Byte |
-| Size | Size of the full block. | 4 Byte |
-| Input Size | Amount of input the block expects. | 4 Byte |
-| Output Size | Amount of output the block produces. | 4 Byte |
-| Text Size | Amount of code the block consists of. | 4 Byte |
-| Text Offset | Offset (in this block) to the instruction data. | 4 Byte |
-| Data Size | Amount of data to load into WRAM. | 4 Byte |
-| Data Offset | Offset (in this block) to the actual data to store in WRAM. | 4 Byte |
+| Name      | Description                                                                                |    Size | Offset |
+|:----------|:-------------------------------------------------------------------------------------------|--------:|-------:|
+| Magic     | Magic number to weed out stupid mistakes.                                                  |  4 Byte |      0 |
+| MAC       | MAC used to authenticate the block.                                                        | 16 Byte |      4 |
+| IV        | IV used for encryption and authentication.                                                 | 12 Byte |     20 |
+| Size AAD  | Amount of AAD (authenticated additional data - authenticated but not encrypted) to expect. |  4 Byte |     32 |
+| Size      | Size of the full block.                                                                    |  4 Byte |     36 |
+| Text Size | Size of the text segment in 2048 byte increments.                                          |  4 Byte |     40 |
+| Data Size | Size of the data segment in bytes.                                                         |  4 Byte |     44 |
+
+### Format
+
+| Name   | Description                            |              Size |
+|:-------|:---------------------------------------|------------------:|
+| Header | Metadata for loading and verification. | 64 Bytes (padded) |
+| Text   | Code of the subkernel to load to IRAM. |  Text Size * 2048 |
+| Data   | Data of the subkernel to load to WRAM. |         Data Size |
 
 ### Rational
 
-Cryptographic parameters come first. Everything below the IV and MAC is at least
-authenticated, but can also be encrypted. Only size aad and size parameters are
-never encrypted and only authenticated. The whole block is decrypted and 
-authenticated at once, with the aad coming first and the decrypted data coming
-second. By changing out the text and data offset fields, one can choose whether
-text or data are encrypted or not. If for example only data is supposed to be
-encrypted, it is placed last in memory after text and the size aad and offset
-parameters are set so that only data is encrypted and everything else is treated
-as aad.
+The magic number is used to catch loads from incorrect addresses early.
+The next likely error would be a failure in TAG verification which
+is horrific to debug. The next 4 parameters are required to perform
+an AEAD decryption. The whole subkernel is decrypted and authenticated
+at once.
+
+We place the text segment at a constant offset after the header. This
+allows us to prevent any dynamic modifications to the load address.
+ROP\`ing the `ldmai` instruction should therefore always result in a
+memory fault, because the registers (hardcoded) aren't accessible
+from outside the trusted core. The text size is in 2048 byte (or 256 instruction)
+increments. We do this to hardcode the amount of code loaded through each
+`ldmai` invocation.
+
 
 ## Switching Blocks
 
