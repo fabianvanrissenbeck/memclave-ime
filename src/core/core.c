@@ -2,11 +2,8 @@
 #include "boot.h"
 
 #include <defs.h>
-
-#define TAILCALL(func, ...) do { \
-    ((int _Noreturn (*)(void*, ...))(func))((void*) __VA_ARGS__); \
-    __builtin_unreachable(); \
-} while (0)
+#include <mram.h>
+#include <mutex.h>
 
 #define SECFAULT() asm("fault 0x101010")
 
@@ -20,8 +17,19 @@ extern void core_enter_system(void);
 
 extern void core_leave_system(void);
 
-extern void core_load_sub_kern(void);
+extern void core_load_iram(void);
 
+extern void core_load_wram(void);
+
+#define core_perform_tailcall(func) \
+do { \
+    __asm__ volatile( \
+        "jump " #func "\n" \
+    ); \
+    __builtin_unreachable(); \
+} while (0)
+
+#if 0
 __attribute__((always_inline))
 static _Noreturn void core_perform_tailcall(void (*func)(void)) {
     __asm__ volatile(
@@ -32,14 +40,13 @@ static _Noreturn void core_perform_tailcall(void (*func)(void)) {
 
     __builtin_unreachable();
 }
+#endif
 
 /**
  * Decrypt and verify performs decryption and full verification of the subkernel.
- * Afterward, the format described in the README is converted to be simpler:
- *
  */
 void core_decrypt_and_verify(void) {
-    core_perform_tailcall(core_load_sub_kern);
+    core_perform_tailcall(core_load_wram);
 }
 
 void core_lock_mram(void) {
@@ -48,10 +55,10 @@ void core_lock_mram(void) {
 
 /** clear everything after the system stack - the stack itself has to be cleared seperately */
 void core_clear_memory(void) {
-    extern uint32_t __ime_stack_end[];
+    extern uint32_t __ime_user_start[];
     extern uint32_t __ime_wram_end[];
 
-    for (volatile uint32_t* cur = &__ime_stack_end[0]; cur != &__ime_wram_end[0]; cur++) {
+    for (volatile uint32_t* cur = &__ime_user_start[0]; cur != &__ime_wram_end[0]; cur++) {
         *cur = 0xFFFFFFFF;
     }
 
@@ -66,10 +73,10 @@ void core_check_threads(void) {
 }
 
 void core_finalize_load(void) {
-    extern uint32_t __ime_stack_start[];
-    extern uint32_t __ime_stack_end[];
+    extern uint32_t __ime_persistent_end[];
+    extern uint32_t __ime_user_start[];
 
-    for (volatile uint32_t* cur = &__ime_stack_start[0]; cur != &__ime_stack_end[0]; ++cur) {
+    for (volatile uint32_t* cur = &__ime_persistent_end[0]; cur != &__ime_user_start[0]; ++cur) {
         *cur = 0xFFFFFFFF;
     }
 

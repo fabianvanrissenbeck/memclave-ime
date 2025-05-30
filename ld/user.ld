@@ -5,7 +5,7 @@ MEMORY {
     wram (wa) : ORIGIN = 0x00000000, LENGTH = 64K
 }
 
-PROVIDE(NR_TASKLETS = 15);
+PROVIDE(NR_TASKLETS = 16);
 PROVIDE(STACK_SIZE_DEFAULT = 1024);
 
 
@@ -14,31 +14,20 @@ SECTIONS
   /*
    * Merge every text section into .text.
    */
-  .text : {
+  .text 0x80000800 : {
+
+    __ime_user_start = .;
     *(.text.__bootstrap)
     *(.text)
     *(.text.*)
-    __ime_core_end = .;
     . = ALIGN(2048);
-    __ime_user_start = .;
   } > iram
 
   .data : {
-    __ime_persistent_start = .;
-    *(.data.persistent)
-    . = ALIGN(8);
-    __ime_persistent_end = .;
-    . = ALIGN(8);
-    __ime_buffer_start = .;
-    . += 64;
-    __ime_buffer_end = .;
-    . = ALIGN(8);
-    __ime_stack_start = .;
-    . += STACK_SIZE_DEFAULT;
-    __ime_stack_end = .;
-
+    . += 1;
     . = ALIGN(2048);
     __ime_user_start = .;
+    . = ALIGN(2048);
     __ime_wram_end = ORIGIN(wram) + LENGTH(wram);
   } > wram
 
@@ -51,7 +40,7 @@ SECTIONS
     __ime_wrap_end = .;
   } > mram
 
-    /DISCARD/ : {
-        *(.data.buffer)
-    }
+  /DISCARD/ : {
+    *(.data.buffer)
+  }
 }

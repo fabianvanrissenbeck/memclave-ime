@@ -77,7 +77,7 @@ DPU. We probably need to write a simple ELF->Block conversion script.
 | Size AAD  | Amount of AAD (authenticated additional data - authenticated but not encrypted) to expect. |  4 Byte |     32 |
 | Size      | Size of the full block.                                                                    |  4 Byte |     36 |
 | Text Size | Size of the text segment in 2048 byte increments.                                          |  4 Byte |     40 |
-| Data Size | Size of the data segment in bytes.                                                         |  4 Byte |     44 |
+| Data Size | Size of the data segment in 2048 byte increments.                                          |  4 Byte |     44 |
 
 ### Format
 

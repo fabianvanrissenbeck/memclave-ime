@@ -1,7 +1,8 @@
 .text
 .globl core_enter_system
 .globl core_leave_system
-.globl core_load_sub_kern
+.globl core_load_iram
+.globl core_load_wram
 
 core_enter_system:
     move r20, __ime_user_start
@@ -23,15 +24,50 @@ core_sec_fault:
     move r21, 64 * 1024 * 1024
     fault 0x101010
 
-core_load_sub_kern:
+core_sanity_fault:
+    fault 0xabc
+
+core_load_wram:
     /* load header of subkernel */
-    ldma r22, r21, 7
+    move r0, __ime_buffer_start
+    ldma r0, r21, 7
+
+    /* sanity check for header validity */
+    lw r1, r0, 0x0
+    xor r1, r1, 0xA5A5A5A5
+    xor zero, r1, 0, nz, core_sanity_fault
+
+    /* calculate offset to WRAM region in MRAM copy */
+    lw r1, r0, 40
+    lsl r1, r1, 11
+    add r1, r1, 64
+    add r1, r1, r21
+
+    /* load amount of loads required and target WRAM address */
+    lw r2, r0, 44
+    move r0, __ime_user_start
+
+    xor zero, r2, 0, z, clw_end
+clw_loop:
+    ldma r0, r1, 255
+    add r0, r0, 2048
+    add r1, r1, 2048
+    sub r2, r2, 1, nz, clw_loop
+clw_end:
+
+    jump core_load_iram
+
+
+core_load_iram:
+    /* load header of subkernel */
+    move r0, __ime_buffer_start
+    ldma r0, r21, 7
 
     /* add offset to IRAM section */
     add r21, r21, 64
 
     /* load the size of the sub kernel (should be between 1 and 15 (inclusive)) */
-    lw r0, r22, 40
+    lw r0, r0, 40
 
     /* fault if r0 is either 0 or larger than 15 */
     xor zero, r0, 0, z, core_sec_fault
