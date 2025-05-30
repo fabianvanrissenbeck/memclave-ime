@@ -5,7 +5,7 @@
 .globl core_load_wram
 
 core_enter_system:
-    move r20, __ime_user_start
+    move r20, __ime_user_start_i
     /* ldmai expects elf style addresses (so instruction index * 8) for some reason */
     lsl r20, r20, 3
     lw r21, zero, ime_sk_addr
@@ -17,7 +17,7 @@ core_enter_system:
 core_leave_system:
     move r20, 4096
     move r21, 64 * 1024 * 1024
-    jump __ime_user_start
+    jump __ime_user_start_i
 
 core_sec_fault:
     move r20, 4096
@@ -45,7 +45,7 @@ core_load_wram:
 
     /* load amount of loads required and target WRAM address */
     lw r2, r0, 44
-    move r0, __ime_user_start
+    move r0, __ime_user_start_w
 
     xor zero, r2, 0, z, clw_end
 clw_loop:

@@ -55,10 +55,10 @@ void core_lock_mram(void) {
 
 /** clear everything after the system stack - the stack itself has to be cleared seperately */
 void core_clear_memory(void) {
-    extern uint32_t __ime_user_start[];
+    extern uint32_t __ime_user_start_w[];
     extern uint32_t __ime_wram_end[];
 
-    for (volatile uint32_t* cur = &__ime_user_start[0]; cur != &__ime_wram_end[0]; cur++) {
+    for (volatile uint32_t* cur = &__ime_user_start_w[0]; cur != &__ime_wram_end[0]; cur++) {
         *cur = 0xFFFFFFFF;
     }
 
@@ -74,9 +74,9 @@ void core_check_threads(void) {
 
 void core_finalize_load(void) {
     extern uint32_t __ime_persistent_end[];
-    extern uint32_t __ime_user_start[];
+    extern uint32_t __ime_user_start_w[];
 
-    for (volatile uint32_t* cur = &__ime_persistent_end[0]; cur != &__ime_user_start[0]; ++cur) {
+    for (volatile uint32_t* cur = &__ime_persistent_end[0]; cur != &__ime_user_start_w[0]; ++cur) {
         *cur = 0xFFFFFFFF;
     }
 

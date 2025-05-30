@@ -20,7 +20,7 @@ SECTIONS
     *(.text.*)
     __ime_core_end = .;
     . = ALIGN(2048);
-    __ime_user_start = .;
+    __ime_user_start_i = .;
   } > iram
 
   .data : {
@@ -38,7 +38,7 @@ SECTIONS
     __ime_stack_end = .;
 
     . = ALIGN(2048);
-    __ime_user_start = .;
+    __ime_user_start_w = .;
     __ime_wram_end = ORIGIN(wram) + LENGTH(wram);
   } > wram
 

@@ -11,7 +11,9 @@ target_include_directories(ime PRIVATE src/common)
 set_target_properties(ime PROPERTIES LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/ld/core.ld)
 target_link_options(ime PUBLIC -T ${CMAKE_CURRENT_SOURCE_DIR}/ld/core.ld)
 
-add_executable(user src/user/main.c src/user/boot.s)
+add_executable(user src/user/main.c src/user/boot.s src/common/global.c src/common/global.h)
+target_include_directories(user PRIVATE src/common)
+
 set_target_properties(user PROPERTIES LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/ld/user.ld)
 target_link_options(user PUBLIC -T ${CMAKE_CURRENT_SOURCE_DIR}/ld/user.ld -v)
 

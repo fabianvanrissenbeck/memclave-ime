@@ -15,18 +15,28 @@ SECTIONS
    * Merge every text section into .text.
    */
   .text 0x80000800 : {
-
-    __ime_user_start = .;
+    __ime_user_start_i = .;
     *(.text.__bootstrap)
     *(.text)
     *(.text.*)
     . = ALIGN(2048);
   } > iram
 
-  .data : {
-    . += 1;
-    . = ALIGN(2048);
-    __ime_user_start = .;
+  .data.noload (NOLOAD) : {
+    __ime_persistent_start = .;
+    *(.data.persistent)
+    . = ALIGN(8);
+    __ime_persistent_end = .;
+  } > wram
+
+  .data 0x800 : {
+    __ime_user_start_w = .;
+    *(*.data)
+    *(*.data.*)
+    . = ALIGN(8);
+    __ime_stack_start = .;
+    . += 1024;
+    __ime_stack_end = .;
     . = ALIGN(2048);
     __ime_wram_end = ORIGIN(wram) + LENGTH(wram);
   } > wram
