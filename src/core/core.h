@@ -5,6 +5,16 @@
 #include <stdint.h>
 #include <stdnoreturn.h>
 
+#define IME_CHECK_SYSTEM() \
+do { \
+    __asm__ volatile( \
+        "call r0, ime_check_system\n" \
+        : \
+        : \
+        : "r0", "r1", "r2", "memory" \
+    ); \
+} while (0)
+
 /**
  * @brief replace the current subkernel terminating it and executing the new one
  * @param sk address in MRAM where the subkernel is located in encrypted form
@@ -44,5 +54,21 @@ void ime_load_wram(void);
 
 /** load the IRAM portion of the subkernel */
 void ime_load_iram(void);
+
+/**
+ * @brief check that the current thread is in system mode
+ *
+ * This function does not follow UPMEM's calling convention so that it can
+ * be called from within the loading subroutines without using WRAM. It
+ * jumps to register 0 (first function parameter) after finishing.
+ *
+ */
+void ime_check_system(int (*func)());
+
+/** fault triggered on security related issues */
+void noreturn ime_sec_fault(void);
+
+/** fault triggered when a fatal but not security related issue occurs */
+void noreturn ime_sanity_fault(void);
 
 #endif

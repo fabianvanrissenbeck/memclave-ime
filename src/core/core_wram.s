@@ -9,7 +9,7 @@ ime_load_wram:
     /* sanity check for header validity */
     lw r1, r0, 0x0
     xor r1, r1, 0xA5A5A5A5
-    xor zero, r1, 0, nz, sanity_fault
+    xor zero, r1, 0, nz, ime_sanity_fault
 
     /* calculate offset to WRAM region in MRAM copy */
     lw r1, r0, 40
@@ -30,6 +30,3 @@ clw_loop:
 clw_end:
 
     jump r23
-
-sanity_fault:
-    fault 0x3

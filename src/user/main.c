@@ -20,5 +20,6 @@ int main(void) {
         for (volatile int i = 0; i < 100000; ++i) {}
     } else {
         // __asm__ volatile("stop");
+        while (1) {}
     }
 }

@@ -25,6 +25,3 @@ loop_4:
     sub r0, r0, 1, nz, loop_4
 
     jump r23
-
-ime_sec_fault:
-    fault 0x101010

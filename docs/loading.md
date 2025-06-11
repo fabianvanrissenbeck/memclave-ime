@@ -43,6 +43,7 @@ been executed correctly up to the current one.
 + `core_scan.c` - Scanning for banned instructions/registers
 + `core_wram.s` - Load primitive into WRAM
 + `core_iram.s` - Load primitive into IRAM
++ `core_util.s` - Utility to check whether in system mode and for standardized fault codes.
 + `core.h` - Header containing entrypoints and some descriptions.
 
 ## Global Registers

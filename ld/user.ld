@@ -15,7 +15,7 @@ SECTIONS
    * Merge every text section into .text.
    */
   .text 0x80000800 : {
-    __ime_user_start_i = .;
+    __ime_user_start = .;
     *(.text.__bootstrap)
     *(.text)
     *(.text.*)
@@ -23,7 +23,7 @@ SECTIONS
   } > iram
 
   .data : {
-    __ime_user_start_w = .;
+    __ime_wram_start = .;
     *(*.data)
     *(*.data.*)
     . = ALIGN(8);

@@ -3,8 +3,8 @@
 
 ime_load_iram:
     /* load size of sub kernel without destroying WRAM (loaded before) */
-    lw r0, zero, 0
-    lw r1, zero, 4
+    lw r0, zero, __ime_wram_start
+    lw r1, zero, __ime_wram_start + 4
 
     /* add offset to size field */
     add r21, r21, 40
@@ -15,13 +15,13 @@ ime_load_iram:
     add r21, r21, 24
 
     /* restore WRAM content */
-    sw zero, 0, r0
-    sw zero, 4, r1
+    sw zero, __ime_wram_start, r0
+    sw zero, __ime_wram_start + 4, r1
 
     /* fault if size is either 0 or larger than 15 */
-    xor zero, r2, 0, z, sec_fault
+    xor zero, r2, 0, z, ime_sec_fault
     and r1, r2, 0xFFFFFFF0
-    xor zero, r1, 0, nz, sec_fault
+    xor zero, r1, 0, nz, ime_sec_fault
 
     /* convert r2 into an offset into the jump table: r0 = (15 - r0) * 4 */
     sub r2, 15, r2
@@ -121,6 +121,3 @@ cls_table_1:
     nop
 
     jump r23
-
-sec_fault:
-    fault 0x101010

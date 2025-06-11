@@ -24,21 +24,7 @@ SECTIONS
   } > iram
 
   .data : {
-    __ime_persistent_start = .;
-    *(.data.persistent)
-    . = ALIGN(8);
-    __ime_persistent_end = .;
-    . = ALIGN(8);
-    __ime_buffer_start = .;
-    . += 64;
-    __ime_buffer_end = .;
-    . = ALIGN(8);
-    __ime_stack_start = .;
-    . += STACK_SIZE_DEFAULT;
-    __ime_stack_end = .;
-
-    . = ALIGN(2048);
-    __ime_user_start_w = .;
+    __ime_wram_start = .;
     __ime_wram_end = ORIGIN(wram) + LENGTH(wram);
   } > wram
 
