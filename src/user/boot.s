@@ -2,6 +2,8 @@
 .globl __bootstrap
 
 __bootstrap:
-    move r22, __ime_stack_start
+    lsl r22, id, 9
+    add r22, r22, __ime_stack_start
     call r23, main
-    stop /* TODO: Change, but right now no follow up subkernel concept is implemented */
+
+    jump zero, 0x1

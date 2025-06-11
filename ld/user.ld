@@ -22,14 +22,7 @@ SECTIONS
     . = ALIGN(2048);
   } > iram
 
-  .data.noload (NOLOAD) : {
-    __ime_persistent_start = .;
-    *(.data.persistent)
-    . = ALIGN(8);
-    __ime_persistent_end = .;
-  } > wram
-
-  .data 0x800 : {
+  .data : {
     __ime_user_start_w = .;
     *(*.data)
     *(*.data.*)

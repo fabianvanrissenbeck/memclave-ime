@@ -5,7 +5,7 @@ MEMORY {
     wram (wa) : ORIGIN = 0x00000000, LENGTH = 64K
 }
 
-PROVIDE(NR_TASKLETS = 15);
+NR_TASKLETS = 16;
 PROVIDE(STACK_SIZE_DEFAULT = 1024);
 
 
@@ -20,7 +20,7 @@ SECTIONS
     *(.text.*)
     __ime_core_end = .;
     . = ALIGN(2048);
-    __ime_user_start_i = .;
+    __ime_user_start = .;
   } > iram
 
   .data : {
