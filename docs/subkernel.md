@@ -14,7 +14,7 @@ inputs and outputs are used to transfer data from one block to another and are
 the only thing that remains of prior blocks in WRAM. Everything else in WRAM
 is purged. This does not however apply to MRAM.
 
-## Global State
+## State passed to Loader
 
 | Name | Purpose | Size |
 |:-----|:--------|-----:|
@@ -23,13 +23,6 @@ is purged. This does not however apply to MRAM.
 | Next Block MAC | Authenticator of the next block to load | 16 + 12 Byte |
 
 ## List of System Blocks
-
-**The block loading block**
-
-This blocks purpose is to wait for a LOAD_BLOCK message issued by the host.
-Once the message arrives, it replaces the next block address and next block
-mac with the ones provided by the host. This system block is special, because
-it is used as a fallback when loading blocks fails in a recoverable way. 
 
 **The key exchange block**
 
@@ -43,7 +36,7 @@ private key (not the system key), so this block has to be encrypted when in MRAM
 
 1. The trusted loader is deployed to the DPU and the DPU boots up. The DPUs MRAM
    is exposed to the host system (the potential adversary) which boots up itself.
-   The DPU initially loads the block loading block.
+   The DPU waits for the first block in MRAM.
 2. The host (or some client connected to the host) writes a load block message into
    MRAM and signals the DPU to process it. At this stage, no user key is 
    deployed to the DPU, which means that only blocks that carry the MAC generated
@@ -52,8 +45,7 @@ private key (not the system key), so this block has to be encrypted when in MRAM
    which would receive the users public key as the input.
 3. The DPU does all the secure lockdown and loading stuff. The block is executed.
    After execution, the key exchange block switches the user key to the shared DH
-   secret. The key exchange block specifies the block loading block as the next
-   block by default.
+   secret. The key exchange block specifies the next block to load.
 4. The host provides some user block that is authenticated using the user key.
    This block gets some host provided inputs, does some calculation and provides
    some outputs.
@@ -104,32 +96,17 @@ increments. We do this to hardcode the amount of code loaded through each
 `ldmai` invocation.
 
 
-## Switching Blocks
+## Switching Subkernels
 
-Blocks terminate by calling the `terminate_and_switch` procedure. This procedure
-performs the following actions:
-+ Wait for all threads to terminate
-+ Clear the user portion of WRAM and IRAM except for the output buffer in WRAM
-+ Copy the output buffer to the input buffer.
-+ Load the next block according to the next block address and next block MAC values
-  using the secure loading procedure.
+Subkernels terminate by jumping to IRAM address 1 by default.
+There a jump instructions  executes the next subkernel carried over MRAM. 
+They may specify an alternate next subkernel by explicitly calling
+the function at IRAM address 1.
 
 ## Properties
 
-+ Blocks can be strongly bound together. One block can ensure than only one trusted
-  block may run after it. This ensures that outputs are only handled by trusted 
-  code.
++ Subkernels can be strongly bound together. One subkernel can ensure that
+  only one trusted subkernel may run after it.
+  This ensures that outputs are only handled by trusted code.
 + Blocks can be kept fully confidential. While in MRAM, a block may be fully
   encrypted. We're doing this with the key exchange block for example.
-+ System and user blocks are handled by the same underlying core loader. This
-  reduces the amount of vulnerable loading code and complexity significantly.
-  This also allows easier verification of system components, because they
-  are more strongly decoupled than in a system that keeps them all in the core.
-  Vulnerabilities in system components do not effect the integrity of the core
-  loader, system components have the same restrictions as user ones, they for
-  example are not allowed to use the banned instructions.
-
-## Current or not yet Fully Solved Issues
-
-+ Preventing ROP to `ldmai` gadget if more than one malicious threat exists.
-+ Checking the state of all threads (reasonably sure I can do this)

@@ -9,8 +9,8 @@ On a high level, loading does the following:
 4. Decrypt and verify the new subkernel in MRAM.
 5. Scan the new subkernel in MRAM for bad instructions.
 6. Clear user memory by wiping WRAM.
-7. Load into IRAM.
-8. Load into WRAM.
+7. Load into WRAM.
+8. Load into IRAM.
 9. Unlock MRAM.
 10. Set the privileged registers to a state, that causes DMA faults when directly jumpting to the `ldmai` address.
 
@@ -22,11 +22,16 @@ point here is that each of these subroutines performs no further
 subroutine calls. This prevents anyone from changing the return
 address mid-execution.
 
-All these steps individually check that they are currently in system mode.
-This can be done by loading from MRAM at address `r21`. This register only
-ever has a valid address when in system mode. After each of these checks
-one can make the assumption that all steps have been executed correctly
-up to the current one.
+All these steps individually check that they are currently in system mode,
+if necessary. This is especially the case for the IRAM loading and the
+decryption component, as these impact security the most even if some
+manipulation does eventually lead to a fault. These two should fault
+as early as possible when a malicious action can be detected.
+
+Checking whether the DPU is in system mode is  done by loading from MRAM
+at address `r21`. This register only ever has a valid address when in system mode.
+After each of these checks  one can make the assumption that all steps have
+been executed correctly up to the current one.
 
 ## Files
 
