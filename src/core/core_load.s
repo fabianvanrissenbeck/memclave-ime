@@ -6,6 +6,7 @@ ime_replace_sk:
     /* ldmai expects elf style addresses (so instruction index * 8) for some reason */
     lsl r20, r20, 3
 
+    move r17, r3
     move r18, r1
     move r19, r2
     move r21, r0
@@ -26,9 +27,34 @@ ime_replace_sk:
 
     call r23, ime_unlock_memory
 
+    move r0, 0x0
+    move r1, 0x0
+    move r2, 0x0
+    move r3, 0x0
+
+    move r4, 0x0
+    move r5, 0x0
+    move r6, 0x0
+    move r7, 0x0
+
+    move r8, 0x0
+    move r9, 0x0
+    move r10, 0x0
+    move r11, 0x0
+
+    move r12, 0x0
+    move r13, 0x0
+    move r14, 0x0
+    move r16, 0x0
+
+    move r17, 0x0
     move r18, 0x0
     move r19, 0x0
+
     move r20, 4096 * 8
     move r21, 64 * 1024 * 1024
+
+    move r22, 0x0
+    move r23, 0x0
 
     jump zero, __ime_user_start

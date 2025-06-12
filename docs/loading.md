@@ -54,6 +54,7 @@ are `r18` and `r19`. They may be used by users during subkernel execution.
 
 | Register | Purpose | Restricted |
 |:-----:|:----|:----:|
+| `r17` | Set to anything but zero to wipe WRAM. | no |
 | `r18` | Store address of 12 byte tag of a subkernel. | no |
 | `r19` | Store address to the user key in WRAM. | no |
 | `r20` | Store the IRAM loading address. Always 4096 * 8 outside the loader. | yes |
