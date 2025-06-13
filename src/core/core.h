@@ -15,6 +15,18 @@ do { \
     ); \
 } while (0)
 
+typedef struct ime_sk {
+    uint32_t magic;
+    uint8_t tag[16];
+    uint8_t iv[12];
+    uint32_t size_aad;
+    uint32_t size;
+    uint32_t text_size;
+    uint32_t data_size;
+    uint8_t pad[16];
+    uint64_t body[];
+} ime_sk;
+
 /**
  * @brief replace the current subkernel terminating it and executing the new one
  * @param sk address in MRAM where the subkernel is located in encrypted form

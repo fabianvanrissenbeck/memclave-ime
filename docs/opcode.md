@@ -26,9 +26,12 @@ clr_run id, 0x12, smi, 0x1234 	01111100 11110011 00101111 00100001 00010010 0011
 
 With the same parameters, all DMA operations have the exact same structure
 except for the last two bits of the least significant byte of the instruction.
-A possible check would be to check equality of the first 8 bits of the
-most significant byte with `0x70` and the check that the two bits are
-event numbers (so that the least significant bit is not set)
+DMA instructions start with `0x70` as the most significant bit. This
+however is not enough to distinguish them. The instruction
+```
+lw r0, r22, -0xC
+```
+also has this prefix.
 
 ## Arithmetic
 
@@ -38,4 +41,6 @@ seems to be encoded in the first two most-significant bytes, when targeting
 a normal register. When targeting a double register, the double register
 is encoded as a 4-bit value in the most significant byte of the instruction.
 
-It could be enough to check that MSB and `0x33` is not `0x22`.
+There are different instruction encodes which encode the target register
+slightly differently. Two encodings which I have found to differ were `rri`
+and `rrici`. `rric` had the same structure as `rrici`.

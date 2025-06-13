@@ -14,11 +14,19 @@ ime_replace_sk:
     call r23, ime_check_threads
     call r23, ime_lock_memory
 
+    /*
+     * ime_decrypt_sk and ime_scan_sk are implemented in c and strictly require a correctly setup
+     * stack. That is why r22 is set to zero. user provided subkernels that which to persist contents
+     * of their WRAM while crossing to another subkernel must make sure that the first few sections
+     * of WRAM are not used by them for anything persistent.
+     */
     move r0, r21
     move r1, r18
     move r2, r19
+    move r22, 0x0
     call r23, ime_decrypt_sk
     move r0, r21
+    move r22, 0x0
     call r23, ime_scan_sk
     call r23, ime_wipe_user
 
