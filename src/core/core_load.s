@@ -13,6 +13,7 @@ ime_replace_sk:
 
     call r23, ime_check_threads
     call r23, ime_lock_memory
+    call r23, ime_wipe_user
 
     /*
      * ime_decrypt_sk and ime_scan_sk are implemented in c and strictly require a correctly setup
@@ -28,7 +29,6 @@ ime_replace_sk:
     move r0, r21
     move r22, 0x0
     call r23, ime_scan_sk
-    call r23, ime_wipe_user
 
     call r23, ime_load_wram
     call r23, ime_load_iram

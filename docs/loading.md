@@ -6,9 +6,9 @@ On a high level, loading does the following:
    and the IRAM load address `__ime_user_start_i` into privileged register `r20`.
 2. Check that no other threads are running.
 3. Lock MRAM. (Fault)
-4. Decrypt and verify the new subkernel in MRAM.
-5. Scan the new subkernel in MRAM for bad instructions.
-6. Clear user memory by wiping WRAM.
+4. Clear user memory by wiping WRAM.
+5. Decrypt and verify the new subkernel in MRAM.
+6. Scan the new subkernel in MRAM for bad instructions.
 7. Load into WRAM.
 8. Load into IRAM.
 9. Unlock MRAM.

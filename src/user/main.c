@@ -1,29 +1,23 @@
-#include <defs.h>
 #include <stdint.h>
 #include <assert.h>
 
-volatile uint64_t a = 0x9ace1765afc17fa1;
-volatile uint64_t b = 0x3b14d3aaf52bc131;
+extern uint32_t chacha_output[16];
 
-uint64_t add(volatile uint64_t a, volatile uint64_t b) {
-    return a + b;
-}
+extern void ime_chacha_blk(uint32_t c, uint32_t n_1, uint32_t n_2, uint32_t n_3);
+
+uint32_t target[16] = {
+    0xe4e7f110, 0x15593bd1, 0x1fdd0f50, 0xc47120a3,
+    0xc7f4d1c7, 0x0368c033, 0x9aaa2204, 0x4e6cd4c3,
+    0x466482d2, 0x09aa9f07, 0x05d7c214, 0xa2028bd9,
+    0xd19c12b5, 0xb94e16de, 0xe883d0cb, 0x4e3c50a2
+};
 
 int main(void) {
-    if (me() == 0) {
-        // __asm__ volatile("resume id, 0x1, false, 0x0");
+    ime_chacha_blk(0x1, 0x09000000, 0x4a000000, 0x00000000);
+
+    for (int i = 0; i < 16; i++) {
+        assert(chacha_output[i] == target[i]);
     }
 
-    assert(add(a, b) == 0x9ace1765afc17fa1 + 0x3b14d3aaf52bc131);
-
-    if (me() == 0) {
-        for (volatile int i = 0; i < 100000; ++i) {}
-        __asm__ volatile("stop");
-        // __asm__ volatile("add r20, r20, 0x1");
-    } else {
-        // __asm__ volatile("ldmai r0, r1, 0xFF");
-        // __asm__ volatile("add.s d20, r0, 0x0, nz, 0x0");
-        __asm__ volatile("stop");
-        // while (1) {}
-    }
+    asm("stop");
 }
