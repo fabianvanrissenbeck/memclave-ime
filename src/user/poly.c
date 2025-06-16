@@ -1,0 +1,159 @@
+#include "poly.h"
+
+#include <stddef.h>
+#include <stdbool.h>
+
+#if POLY_DEBUG
+#define STATIC
+#else
+#define STATIC static
+#endif
+
+STATIC uint32_t poly_load_le(const uint8_t buf[4]) {
+    return buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24);
+}
+
+STATIC void poly_put_le(uint32_t n, uint8_t buf[4]) {
+    buf[0] = n & 0xFF;
+    buf[1] = (n >> 8) & 0xFF;
+    buf[2] = (n >> 16) & 0xFF;
+    buf[3] = (n >> 24) & 0xFF;
+}
+
+STATIC void poly_masked_reduce(uint32_t target[5], uint32_t mask) {
+    target[0] += 0x5 & mask;
+    target[1] += (target[0] < 5) & mask;
+    target[2] += (target[1] == 0) & mask;
+    target[3] += (target[2] == 0) & mask;
+    target[4] += (0xFFFFFFFC + (target[3] == 0)) & mask;
+}
+
+/** return UINT32_MAX if n is larger or equal to (1 << 130) - 5 and 0 otherwise */
+STATIC uint32_t poly_reduction_req(const uint32_t n[5]) {
+    bool a = n[4] > 0x3;
+    bool b = n[4] == 0x3;
+    bool c = n[3] == UINT32_MAX && n[2] == UINT32_MAX && n[1] == UINT32_MAX;
+    bool d = n[0] >= 0xFFFFFFFB;
+
+    bool res = a | (b & c & d);
+    return 0 - (uint32_t) res;
+}
+
+STATIC void poly_fast_reduce(uint32_t target[5]) {
+    uint32_t mask = 0 - (target[4] > 3);
+    poly_masked_reduce(target, mask);
+}
+
+/** subtract the prime (1 << 130) - 5 from target if target is larger than it */
+STATIC void poly_blind_reduce(uint32_t target[5]) {
+    uint32_t mask = poly_reduction_req(target);
+    poly_masked_reduce(target, mask);
+}
+
+STATIC bool poly_add_assign(size_t n, uint32_t target[n], const uint32_t source[n]) {
+    bool carry = false;
+
+    for (size_t i = 0; i < n; ++i) {
+        uint64_t val = (uint64_t) target[i] + (uint64_t) source[i] + (uint64_t) carry;
+
+        target[i] = val & UINT32_MAX;
+        carry = (val >> 32) != 0;
+    }
+
+    return carry;
+}
+
+/** add a block of data to the target and reduce it below the prime */
+STATIC void poly_add_reduce(uint32_t target[5], const uint32_t block[5]) {
+    poly_add_assign(5, target, block);
+    // poly_blind_reduce(target);
+    poly_fast_reduce(target);
+}
+
+/** multiply the target by two and reduce it below the prime */
+STATIC void poly_double_reduce(uint32_t target[5]) {
+    target[4] = target[4] << 1 | target[3] >> 31;
+    target[3] = target[3] << 1 | target[2] >> 31;
+    target[2] = target[2] << 1 | target[1] >> 31;
+    target[1] = target[1] << 1 | target[0] >> 31;
+    target[0] = target[0] << 1;
+
+    // poly_blind_reduce(target);
+    poly_fast_reduce(target);
+}
+
+STATIC void poly_mul_key(poly_context* ctx) {
+    uint32_t prod[5] = { 0 };
+
+    for (int i = 0; i < 128; ++i) {
+        if ((ctx->r[i / 32] >> (i % 32)) & 0x1) {
+            poly_add_reduce(prod, ctx->a);
+        }
+
+        poly_double_reduce(ctx->a);
+    }
+
+    poly_blind_reduce(prod);
+
+    for (int i = 0; i < 5; ++i) { ctx->a[i] = prod[i]; }
+}
+
+STATIC void poly_feed_block(poly_context* ctx, const uint8_t block[16]) {
+    uint32_t input[5] = {
+        poly_load_le(&block[0]),
+        poly_load_le(&block[4]),
+        poly_load_le(&block[8]),
+        poly_load_le(&block[12]),
+        0x1
+    };
+
+    poly_add_reduce(ctx->a, input);
+    poly_mul_key(ctx);
+}
+
+STATIC void poly_feed_tail(poly_context* ctx, size_t n, const uint8_t tail[n]) {
+    uint32_t input[5] = { 0 };
+
+    for (size_t i = 0; i < n; ++i) {
+        input[i / 4] |= tail[i] << (i % 4) * 8;
+    }
+
+    input[n / 4] |= 1 << (n % 4) * 8;
+
+    poly_add_reduce(ctx->a, input);
+    poly_mul_key(ctx);
+}
+
+void poly_init(poly_context* ctx, const uint8_t key[32]) {
+    *ctx = (poly_context) {
+        .r = {
+            poly_load_le(&key[0]) & 0x0FFFFFFF,
+            poly_load_le(&key[4]) & 0x0FFFFFFC,
+            poly_load_le(&key[8]) & 0x0FFFFFFC,
+            poly_load_le(&key[12]) & 0x0FFFFFFC,
+        },
+        .s = {
+            poly_load_le(&key[16]),
+            poly_load_le(&key[20]),
+            poly_load_le(&key[24]),
+            poly_load_le(&key[28]),
+        }
+    };
+}
+
+void poly_feed(poly_context* ctx, size_t n, const uint8_t data[n], uint8_t out[16]) {
+    size_t n_read = 0;
+
+    for (; n_read + 16 <= n; n_read += 16) {
+        poly_feed_block(ctx, &data[n_read]);
+    }
+
+    poly_feed_tail(ctx, n - n_read, &data[n_read]);
+    poly_add_assign(4, ctx->a, ctx->s);
+
+    for (int i = 0; i < 4; ++i) { poly_put_le(ctx->a[i], &out[i * 4]); }
+}
+
+void poly_free(poly_context* ctx) {
+    *ctx = (poly_context) { 0 };
+}

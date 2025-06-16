@@ -1,23 +1,40 @@
-#include <stdint.h>
+#include "poly.h"
+
+#include <stdio.h>
+#include <string.h>
 #include <assert.h>
 
-extern uint32_t chacha_output[16];
+const uint8_t key[] = {
+    0x85, 0xd6, 0xbe, 0x78, 0x57, 0x55, 0x6d, 0x33,
+    0x7f, 0x44, 0x52, 0xfe, 0x42, 0xd5, 0x06, 0xa8,
+    0x01, 0x03, 0x80, 0x8a, 0xfb, 0x0d, 0xb2, 0xfd,
+    0x4a, 0xbf, 0xf6, 0xaf, 0x41, 0x49, 0xf5, 0x1b
+};
 
-extern void ime_chacha_blk(uint32_t c, uint32_t n_1, uint32_t n_2, uint32_t n_3);
+const uint8_t input[] = "Cryptographic Forum Research Group";
 
-uint32_t target[16] = {
-    0xe4e7f110, 0x15593bd1, 0x1fdd0f50, 0xc47120a3,
-    0xc7f4d1c7, 0x0368c033, 0x9aaa2204, 0x4e6cd4c3,
-    0x466482d2, 0x09aa9f07, 0x05d7c214, 0xa2028bd9,
-    0xd19c12b5, 0xb94e16de, 0xe883d0cb, 0x4e3c50a2
+const uint8_t target[] = {
+    0xa8, 0x06, 0x1d, 0xc1, 0x30, 0x51, 0x36, 0xc6,
+    0xc2, 0x2b, 0x8b, 0xaf, 0x0c, 0x01, 0x27, 0xa9
 };
 
 int main(void) {
-    ime_chacha_blk(0x1, 0x09000000, 0x4a000000, 0x00000000);
+    uint8_t mac[16];
+    poly_context ctx;
 
-    for (int i = 0; i < 16; i++) {
-        assert(chacha_output[i] == target[i]);
+    poly_init(&ctx, key);
+    poly_feed(&ctx, 34, input, mac);
+    poly_free(&ctx);
+
+    assert(memcmp(target, mac, 16) == 0);
+#if 0
+    for (int i = 0; i < 12; i++) {
+        assert(target[i] == mac[i]);
     }
+#endif
+
+    // printf("Done!\n");
 
     asm("stop");
+    return 0;
 }
