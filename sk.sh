@@ -21,8 +21,13 @@ then
   IRAM_SIZE_N=$(ls -l /tmp/iram.bin | awk '{ print $5 }')
   WRAM_SIZE_N=$(ls -l /tmp/wram.bin | awk '{ print $5 }')
 
-  IRAM_SIZE=$(be_to_le $(printf "%08x" $(( IRAM_SIZE_N / 2048 ))) 4)
-  WRAM_SIZE=$(be_to_le $(printf "%08x" $(( WRAM_SIZE_N / 2048 ))) 4)
+  IRAM_SECTION_N=$(( (IRAM_SIZE_N + 2047) / 2048 ))
+  WRAM_SECTION_N=$(( (WRAM_SIZE_N + 2047) / 2048 ))
+
+  IRAM_SIZE=$(be_to_le $(printf "%08x" $(( (IRAM_SIZE_N + 2047) / 2048 ))) 4)
+  WRAM_SIZE=$(be_to_le $(printf "%08x" $(( (WRAM_SIZE_N + 2047) / 2048 ))) 4)
+
+  printf "Creating subkernel with %d text sections and %d data sections.\n" $IRAM_SECTION_N $WRAM_SECTION_N
 
   MAGIC="A5A5A5A5";
   MAC=$(printf "%032x" 0)

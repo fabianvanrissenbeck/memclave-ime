@@ -3,7 +3,7 @@
 
 __bootstrap:
     lsl r22, id, 9
-    add r22, r22, __ime_stack_start
+    add r22, r22, __sys_stack_thread_0
     call r23, main
 
     move r0, 0x0
