@@ -23,6 +23,14 @@ void* load_file_complete(const char* path, size_t* out_size) {
     return res;
 }
 
+void buf_to_stdout(size_t sz, const uint64_t* buf) {
+    FILE* p = popen("xxd -e -g 8", "w");
+    assert(p != NULL);
+
+    fwrite(buf, 1, sz * sizeof(buf[0]), p);
+    pclose(p);
+}
+
 int main(int argc, char** argv) {
     struct dpu_set_t set, dpu;
 
@@ -45,9 +53,14 @@ int main(int argc, char** argv) {
     DPU_ASSERT(dpu_launch(set, DPU_SYNCHRONOUS));
 
     DPU_FOREACH(set, dpu) {
+        uint64_t output[8];
+
         if (dpu_log_read(dpu, stdout) != DPU_OK) {
             printf("No logging symbols found.\n");
         }
+
+        DPU_ASSERT(dpu_copy_from_mram(dpu.dpu, (const uint8_t*) &output[0], (64 << 20) - sizeof(output), sizeof(output)));
+        buf_to_stdout(8, output);
     }
 
     DPU_ASSERT(dpu_free(set));
