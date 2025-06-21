@@ -15,11 +15,14 @@ RUN apt-get update && \
         gdb \
         default-jdk \
         libudev-dev \
+	python3-pip \
         xxd
 
 RUN wget http://sdk-releases.upmem.com/2025.1.0/debian_10/upmem_2025.1.0_amd64.deb && \
     apt-get update && \
     apt-get install -y ./upmem_2025.1.0_amd64.deb
+
+RUN pip3 install pycryptodome
 
 COPY ./tools/dpurun.c /src/dpurun.c
 
