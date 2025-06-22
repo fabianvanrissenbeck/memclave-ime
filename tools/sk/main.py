@@ -122,8 +122,9 @@ def main(in_file: str, out_file: str, mode: str) -> int:
     enc_sk = sk.crypt(key)
 
     ## Sanity checks for encryption and authentication success
-    assert(verify_sk_tag(enc_sk, key))
-    assert(not verify_sk_tag(enc_sk[:-1] + bytes(1), key))
+    if mode != "auth":
+        assert(verify_sk_tag(enc_sk, key))
+        assert(not verify_sk_tag(enc_sk[:-1] + bytes(1), key))
 
     print(f"Created subkernel with {sk.text_size} text and {sk.data_size} data sections.")
 

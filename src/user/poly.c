@@ -9,10 +9,6 @@
 #define STATIC static
 #endif
 
-STATIC uint32_t poly_load_le(const uint8_t buf[4]) {
-    return buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24);
-}
-
 STATIC void poly_put_le(uint32_t n, uint8_t buf[4]) {
     buf[0] = n & 0xFF;
     buf[1] = (n >> 8) & 0xFF;
@@ -98,13 +94,9 @@ STATIC void poly_mul_key(poly_context* ctx) {
     for (int i = 0; i < 5; ++i) { ctx->a[i] = prod[i]; }
 }
 
-STATIC void poly_feed_block(poly_context* ctx, const uint8_t block[16]) {
+STATIC void poly_feed_block(poly_context* ctx, const uint32_t block[4]) {
     uint32_t input[5] = {
-        poly_load_le(&block[0]),
-        poly_load_le(&block[4]),
-        poly_load_le(&block[8]),
-        poly_load_le(&block[12]),
-        0x1
+        block[0], block[1], block[2], block[3], 0x1
     };
 
     poly_add_reduce(ctx->a, input);
@@ -124,34 +116,33 @@ STATIC void poly_feed_tail(poly_context* ctx, size_t n, const uint8_t tail[n]) {
     poly_mul_key(ctx);
 }
 
-void poly_init(poly_context* ctx, const uint8_t key[32]) {
+void poly_init(poly_context* ctx, const uint32_t key[8]) {
     *ctx = (poly_context) {
         .r = {
-            poly_load_le(&key[0]) & 0x0FFFFFFF,
-            poly_load_le(&key[4]) & 0x0FFFFFFC,
-            poly_load_le(&key[8]) & 0x0FFFFFFC,
-            poly_load_le(&key[12]) & 0x0FFFFFFC,
+            key[0] & 0x0FFFFFFF,
+            key[1] & 0x0FFFFFFC,
+            key[2] & 0x0FFFFFFC,
+            key[3] & 0x0FFFFFFC,
         },
         .s = {
-            poly_load_le(&key[16]),
-            poly_load_le(&key[20]),
-            poly_load_le(&key[24]),
-            poly_load_le(&key[28]),
+            key[4], key[5], key[6], key[7],
         }
     };
 }
 
-void poly_feed(poly_context* ctx, size_t n, const uint8_t data[n], uint8_t out[16]) {
+void poly_feed(poly_context* ctx, size_t n, const uint32_t data[n], uint32_t out[4]) {
     size_t n_read = 0;
 
     for (; n_read + 16 <= n; n_read += 16) {
-        poly_feed_block(ctx, &data[n_read]);
+        poly_feed_block(ctx, &data[n_read / 4]);
     }
 
-    poly_feed_tail(ctx, n - n_read, &data[n_read]);
+    poly_feed_tail(ctx, n - n_read, &((const uint8_t*) data)[n_read]);
     poly_add_assign(4, ctx->a, ctx->s);
 
-    for (int i = 0; i < 4; ++i) { poly_put_le(ctx->a[i], &out[i * 4]); }
+    for (int i = 0; i < 4; ++i) {
+        out[i] = ctx->a[i];
+    }
 }
 
 void poly_free(poly_context* ctx) {
