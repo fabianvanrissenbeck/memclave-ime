@@ -54,6 +54,11 @@ ime_replace_sk:
     move r20, 4096 * 8
     move r21, 64 * 1024 * 1024
 
+    move r0, NR_TASKLETS
+resume_loop:
+    resume r0, 0
+    sub r0, r0, 1, nz, resume_loop
+
     move r22, 0x0
     move r23, 0x0
 
