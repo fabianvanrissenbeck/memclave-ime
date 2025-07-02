@@ -76,3 +76,48 @@ MRAM and then raises the ready line again.
 We perform a key-exchange using [IES](https://en.wikipedia.org/wiki/Integrated_Encryption_Scheme).
 This allows sending the first client subkernel and the client public key
 at the same time to the DPU without any roundtrips from DPU to client.
+
+## Fault Step-Over Mechanism
+
+**Current Implementation**
+
+On fault the hypervisors switches out the `fault` instruction with a `nop`
+and the following `nop` with a `fault`. Execution is resumed. The next fault
+is cleared by swapping back the `nop` and `fault` instructions.
+
+The issue with this implementation is the IRAM write at runtime. This
+expands the possible attack surface against the benign hypervisor.
+
+**Alternative Implementation**
+
++ Single `fault` function with a *constant* address right after the fault
+  instruction. Piece of code can be called as a normal function.
++ Code at address zero raises a run-bit > 24. If the run-bit was previously
+  zero, jump to the return address of the fault function. Otherwise continue
+  the normal boot sequence.
++ Boot Gadget:
+   ```asm
+   boot zero, 24, z, fault_ret_address
+   ```
++ Host side resumption:
+  + Use modified teardown mechanism as in thesis project
+  + Don't resume faulting thread, instead reset its PC to zero.
+  + Why not just a function pointer
+    + Can be changed by other threads
+    + Can be consumed multiple times
+  + No high level tools to clear RUN_BIT[i] from the host side.
+  + Clear run command issued at CI granularity, not DPU granularity
+    + Different run bits for DPUs of the same CI
+    + Increases complexity
+    + Raw `ufi_clear_run_bit` call due to missing higher level method.
+
+
+## System Thread Approach
+
++ Thread 23 keeps all keys in its registers. The thread is not running
+  while user code is active.
++ User code executes a simple `resume zero, 23, false, 0` gadget, resuming
+  the thread at its entry point.
++ System thread fetches arguments from a predefined location.
++ Performs the normal operations as they are currently implemented.
++ `stop __system_entrypoint` afterwards
