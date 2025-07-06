@@ -56,8 +56,10 @@ ime_replace_sk:
 
     move r0, NR_TASKLETS
 resume_loop:
+    sub r0, r0, 1, z, resume_end
     resume r0, 0
-    sub r0, r0, 1, nz, resume_loop
+    jump resume_loop
+resume_end:
 
     move r22, 0x0
     move r23, 0x0

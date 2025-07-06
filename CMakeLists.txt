@@ -19,3 +19,9 @@ set_target_properties(user PROPERTIES LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/l
 target_link_options(user PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/ld/user.ld)
 target_link_options(user PUBLIC -nostartfiles)
 target_link_options(user PUBLIC -DNR_TASKLETS=16)
+
+add_executable(msg src/msg/main.c src/msg/boot.s)
+set_target_properties(msg PROPERTIES LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/ld/user.ld)
+target_link_options(msg PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/ld/user.ld)
+target_link_options(msg PUBLIC -nostartfiles)
+target_link_options(msg PUBLIC -DNR_TASKLETS=1)

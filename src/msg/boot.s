@@ -1,5 +1,6 @@
 .text
 .globl __bootstrap
+.globl wait_for_host
 
 __bootstrap:
     sub zero, NR_TASKLETS-1, id, mi, stop_unused_tasklet
@@ -8,7 +9,7 @@ __bootstrap:
     add r22, r22, __sys_stack_thread_0
     call r23, main
 
-    move r0, 0x0
+    move r0, 0x3f00000
     move r1, 0x0
     move r2, 0x0
     move r3, 0x1
@@ -17,3 +18,6 @@ __bootstrap:
 
 stop_unused_tasklet:
     stop t, __bootstrap
+
+wait_for_host:
+    jump 0x2
