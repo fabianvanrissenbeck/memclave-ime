@@ -4,7 +4,7 @@
 __bootstrap:
     sub zero, NR_TASKLETS-1, id, mi, stop_unused_tasklet
 
-    lsl r22, id, 9
+    lsl r22, id, 9 // 512 bytes stack per thread
     add r22, r22, __sys_stack_thread_0
     call r23, main
 

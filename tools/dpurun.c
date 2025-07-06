@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
     DPU_ASSERT(dpu_load(set, argv[1], NULL));
 
     DPU_FOREACH(set, dpu) {
-        DPU_ASSERT(dpu_copy_to_mram(dpu.dpu, 0, buf, buf_sz));
+        DPU_ASSERT(dpu_copy_to_mram(dpu.dpu, 63 << 20, buf, buf_sz));
     }
 
     free(buf);
