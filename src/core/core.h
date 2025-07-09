@@ -22,7 +22,7 @@ do { \
  * @param user_key key used to verify the subkernel or NULL to use the system key
  * @param wipe_wram if not zero wipe all of wram before proceeding with the load process
  */
-void noreturn ime_replace_sk(void __mram_ptr* sk, const uint8_t tag[12], const uint8_t user_key[32], uint32_t wipe_wram);
+void noreturn ime_replace_sk(void __mram_ptr* sk, const uint8_t tag[16], const uint8_t user_key[32], uint32_t wipe_wram);
 
 /** cause a security violation if any threads is running */
 void ime_check_threads(void);
