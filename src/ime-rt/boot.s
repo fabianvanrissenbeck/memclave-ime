@@ -1,4 +1,4 @@
-.text
+.section .text.__bootstrap
 .globl __bootstrap
 .globl __ime_wait_for_host
 .globl __ime_replace_sk
