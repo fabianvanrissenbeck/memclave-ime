@@ -137,7 +137,10 @@ void poly_feed(poly_context* ctx, size_t n, const uint32_t data[n], uint32_t out
         poly_feed_block(ctx, &data[n_read / 4]);
     }
 
-    poly_feed_tail(ctx, n - n_read, &((const uint8_t*) data)[n_read]);
+    if (n % 16) {
+        poly_feed_tail(ctx, n - n_read, &((const uint8_t*) data)[n_read]);
+    }
+
     poly_add_assign(4, ctx->a, ctx->s);
 
     for (int i = 0; i < 4; ++i) {

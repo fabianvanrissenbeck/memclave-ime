@@ -37,14 +37,14 @@ ime_chacha_blk:
     move r3, 0x6b206574
 
     // dummy key - replace it
-    move r4, 0x03020100
-    move r5, 0x07060504
-    move r6, 0x0b0a0908
-    move r7, 0x0f0e0d0c
-    move r8, 0x13121110
-    move r9, 0x17161514
-    move r10, 0x1b1a1918
-    move r11, 0x1f1e1d1c
+    move r4, 0x83828180
+    move r5, 0x87868584
+    move r6, 0x8b8a8988
+    move r7, 0x8f8e8d8c
+    move r8, 0x93929190
+    move r9, 0x97969594
+    move r10, 0x9b9a9998
+    move r11, 0x9f9e9d9c
 
     move r16, 10
 chacha_loop:
@@ -73,15 +73,14 @@ chacha_loop:
     add r2, r2, 0x79622d32
     add r3, r3, 0x6b206574
 
-    // dummy key - replace it
-    add r4, r4, 0x03020100
-    add r5, r5, 0x07060504
-    add r6, r6, 0x0b0a0908
-    add r7, r7, 0x0f0e0d0c
-    add r8, r8, 0x13121110
-    add r9, r9, 0x17161514
-    add r10, r10, 0x1b1a1918
-    add r11, r11, 0x1f1e1d1c
+    add r4, r4, 0x83828180
+    add r5, r5, 0x87868584
+    add r6, r6, 0x8b8a8988
+    add r7, r7, 0x8f8e8d8c
+    add r8, r8, 0x93929190
+    add r9, r9, 0x97969594
+    add r10, r10, 0x9b9a9998
+    add r11, r11, 0x9f9e9d9c
 
     sw zero, chacha_output, r0
     sw zero, chacha_output + 4, r1

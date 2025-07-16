@@ -54,11 +54,14 @@ class SubKernel:
 
         return res
 
-    def crypt(self, key: bytes) -> bytes:
+    def crypt(self, key: bytes, iv: bytes) -> bytes:
         if len(key) != 32:
             raise ValueError("key must be 32 bytes long")
 
-        cipher = ChaCha20_Poly1305.new(key=key)
+        if (not iv is None) and len(iv) != 12:
+            raise ValueError("iv must be 12 bytes long")
+
+        cipher = ChaCha20_Poly1305.new(key=key, nonce=iv)
         data = bytes(self)
 
         cipher.update(data[:self.size_aad])
@@ -117,14 +120,14 @@ def main(in_file: str, out_file: str, mode: str) -> int:
     text, data = extract_sections_from(in_file)
     sk = SubKernel(text, data, enc_text=enc_text, enc_data=enc_data)
 
-    key = bytes([b for b in range(0, 32)])
+    key = bytes([b + 0x80 for b in range(0, 32)])
+    iv = bytes([0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7])
 
-    enc_sk = sk.crypt(key)
+    enc_sk = sk.crypt(key, iv=iv)
 
     ## Sanity checks for encryption and authentication success
-    if mode != "auth":
-        assert(verify_sk_tag(enc_sk, key))
-        assert(not verify_sk_tag(enc_sk[:-1] + bytes(1), key))
+    assert(verify_sk_tag(enc_sk, key))
+    assert(not verify_sk_tag(enc_sk[:-1] + bytes([enc_sk[-1] ^ 0xFF]), key))
 
     print(f"Created subkernel with {sk.text_size} text and {sk.data_size} data sections.")
 
