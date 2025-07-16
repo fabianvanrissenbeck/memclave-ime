@@ -12,9 +12,9 @@ typedef struct poly_context {
 
 void poly_init(poly_context* ctx, const uint32_t key[8]);
 
-void poly_feed(poly_context* ctx, size_t n, const uint32_t data[n], uint32_t out[4]);
+void poly_feed_block(poly_context* ctx, const uint32_t block[4]);
 
-void poly_free(poly_context* ctx);
+void poly_finalize(poly_context* ctx, uint32_t out[4]);
 
 #if POLY_DEBUG
 

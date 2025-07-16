@@ -9,13 +9,6 @@
 #define STATIC static
 #endif
 
-STATIC void poly_put_le(uint32_t n, uint8_t buf[4]) {
-    buf[0] = n & 0xFF;
-    buf[1] = (n >> 8) & 0xFF;
-    buf[2] = (n >> 16) & 0xFF;
-    buf[3] = (n >> 24) & 0xFF;
-}
-
 STATIC void poly_masked_reduce(uint32_t target[5], uint32_t mask) {
     target[0] += 0x5 & mask;
     target[1] += (target[0] < 5) & mask;
@@ -94,23 +87,10 @@ STATIC void poly_mul_key(poly_context* ctx) {
     for (int i = 0; i < 5; ++i) { ctx->a[i] = prod[i]; }
 }
 
-STATIC void poly_feed_block(poly_context* ctx, const uint32_t block[4]) {
+void poly_feed_block(poly_context* ctx, const uint32_t block[4]) {
     uint32_t input[5] = {
         block[0], block[1], block[2], block[3], 0x1
     };
-
-    poly_add_reduce(ctx->a, input);
-    poly_mul_key(ctx);
-}
-
-STATIC void poly_feed_tail(poly_context* ctx, size_t n, const uint8_t tail[n]) {
-    uint32_t input[5] = { 0 };
-
-    for (size_t i = 0; i < n; ++i) {
-        input[i / 4] |= tail[i] << (i % 4) * 8;
-    }
-
-    input[n / 4] |= 1 << (n % 4) * 8;
 
     poly_add_reduce(ctx->a, input);
     poly_mul_key(ctx);
@@ -130,24 +110,12 @@ void poly_init(poly_context* ctx, const uint32_t key[8]) {
     };
 }
 
-void poly_feed(poly_context* ctx, size_t n, const uint32_t data[n], uint32_t out[4]) {
-    size_t n_read = 0;
-
-    for (; n_read + 16 <= n; n_read += 16) {
-        poly_feed_block(ctx, &data[n_read / 4]);
-    }
-
-    if (n % 16) {
-        poly_feed_tail(ctx, n - n_read, &((const uint8_t*) data)[n_read]);
-    }
-
+void poly_finalize(poly_context* ctx, uint32_t tag[4]) {
     poly_add_assign(4, ctx->a, ctx->s);
 
     for (int i = 0; i < 4; ++i) {
-        out[i] = ctx->a[i];
+        tag[i] = ctx->a[i];
     }
-}
 
-void poly_free(poly_context* ctx) {
     *ctx = (poly_context) { 0 };
 }
