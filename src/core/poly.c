@@ -10,11 +10,15 @@
 #endif
 
 STATIC void poly_masked_reduce(uint32_t target[5], uint32_t mask) {
-    target[0] += 0x5 & mask;
-    target[1] += (target[0] < 5) & mask;
-    target[2] += (target[1] == 0) & mask;
-    target[3] += (target[2] == 0) & mask;
-    target[4] += (0xFFFFFFFC + (target[3] == 0)) & mask;
+    bool carry = false;
+    uint32_t n[5] = { 0x5, 0x0, 0x0, 0x0, 0xFFFFFFFC };
+
+    for (int i = 0; i < 5; ++i) {
+        bool new_carry = (uint32_t)(target[i] + n[i]) < n[i];
+
+        target[i] += (n[i] + carry) & mask;
+        carry = new_carry;
+    }
 }
 
 /** return UINT32_MAX if n is larger or equal to (1 << 130) - 5 and 0 otherwise */
