@@ -17,13 +17,13 @@ do { \
 
 typedef struct ime_sk {
     uint32_t magic;
-    uint8_t tag[16];
-    uint8_t iv[12];
+    uint32_t tag[4];
+    uint32_t iv[3];
     uint32_t size_aad;
     uint32_t size;
     uint32_t text_size;
     uint32_t data_size;
-    uint8_t pad[16];
+    uint32_t pad[4];
     uint64_t body[];
 } ime_sk;
 

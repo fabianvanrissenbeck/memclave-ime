@@ -3,7 +3,7 @@ project(ime C ASM)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(ime src/core/core.s src/core/core.h src/core/core_util.s src/core/core_crypt.c src/core/core_iram.s src/core/core_load.s src/core/core_mem.s src/core/core_scan.c src/core/core_thrd.s src/core/core_wram.s)
+add_executable(ime src/core/core.s src/core/core.h src/core/core_util.s src/core/core_crypt.c src/core/core_iram.s src/core/core_load.s src/core/core_mem.s src/core/core_scan.c src/core/core_thrd.s src/core/core_wram.s src/core/aead.c src/core/aead.h src/core/chacha.S src/core/poly.c src/core/poly.h)
 target_compile_options(ime PRIVATE -Os)
 target_include_directories(ime PRIVATE src/common)
 
@@ -18,7 +18,7 @@ target_include_directories(ime-rt PUBLIC src/ime-rt)
 target_link_options(ime-rt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/ld/user.ld)
 target_link_options(ime-rt PUBLIC -nostartfiles)
 
-add_executable(user src/user/main.c src/user/chacha.S src/user/poly.c src/user/poly.h src/user/aead.c src/user/aead.h)
+add_executable(user src/user/main.c)
 target_link_libraries(user PUBLIC ime-rt)
 target_link_options(user PUBLIC -DNR_TASKLETS=1)
 

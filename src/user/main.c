@@ -1,10 +1,5 @@
-#include "poly.h"
-
 #include <mram.h>
 #include <defs.h>
-#include <assert.h>
-
-#include "aead.h"
 
 #define OUTPUT ((uint32_t __mram_ptr*) ((64 << 20) - 64))
 
@@ -949,6 +944,7 @@ extern void ime_chacha_blk(uint32_t c, uint32_t iv_a, uint32_t iv_b, uint32_t iv
 extern uint32_t chacha_output[16];
 
 int main(void) {
+#if 0
     uint32_t __mram_ptr* sk_raw = NULL;
 
     for (int i = 0; i < sizeof(input) / sizeof(input[0]); ++i) {
@@ -961,6 +957,10 @@ int main(void) {
     for (int i = 0; i < 8; ++i) {
         OUTPUT[i * 2] = sk->body[i + 8] & UINT32_MAX;
         OUTPUT[i * 2 + 1] = sk->body[i + 8] >> 32;
+    }
+#endif
+    for (int i = 0; i < 16; ++i) {
+        OUTPUT[i] = i + (i << 8) + (i << 16) + (i << 24);
     }
 
     asm("stop");
