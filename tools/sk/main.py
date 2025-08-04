@@ -130,6 +130,8 @@ def main(in_file: str, out_file: str, mode: str) -> int:
     assert(not verify_sk_tag(enc_sk[:-1] + bytes([enc_sk[-1] ^ 0xFF]), key))
 
     print(f"Created subkernel with {sk.text_size} text and {sk.data_size} data sections.")
+    print(sk.size_aad)
+    print(sk.size)
 
     with open(out_file, "wb") as f:
         f.write(enc_sk)

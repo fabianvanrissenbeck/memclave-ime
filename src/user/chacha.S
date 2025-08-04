@@ -26,6 +26,11 @@ ime_chacha_blk:
     sw r22, 8, r2
     sw r22, 12, r3
 
+    // r14-r16 are callee saved - this has caused issues
+    sw r22, 16, r14
+    sw r22, 20, r15
+    sw r22, 24, r16
+
     move r12, r0
     move r13, r1
     move r14, r2
@@ -98,6 +103,10 @@ chacha_loop:
     sw zero, chacha_output + 52, r13
     sw zero, chacha_output + 56, r14
     sw zero, chacha_output + 60, r15
+
+    lw r14, r22, 16
+    lw r15, r22, 20
+    lw r16, r22, 24
 
     jump r23
 
