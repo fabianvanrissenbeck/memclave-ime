@@ -6,10 +6,17 @@
 
 #define OUTPUT ((uint32_t __mram_ptr*) ((64 << 20) - 64))
 
+#if 0
 const uint32_t input[8] = {
     0x2ae6eb98, 0x3ecce531, 0xab009248, 0x8b840bc5,
     0x6c6c6548, 0x57202c6f, 0x646c726f, 0x0000002e,
 };
+#else
+const uint32_t input[] = {
+    0xb7b71824, 0x9a505483, 0xa00e6f7f, 0x64a0ff30,
+    0x00000000, 0x00000000, 0x00000000, 0x00000000,
+};
+#endif
 
 const uint32_t iv[3] = {
     0x00000000, 0x03020100, 0x07060504
