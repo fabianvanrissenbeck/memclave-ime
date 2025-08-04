@@ -22,6 +22,14 @@ add_executable(add-example src/add/main.c)
 target_link_libraries(add-example PUBLIC ime-rt)
 target_link_options(add-example PUBLIC -DNR_TASKLETS=1)
 
+add_executable(mbench-example src/mbench/main.c)
+target_link_libraries(mbench-example PUBLIC ime-rt)
+target_link_options(mbench-example PUBLIC -DNR_TASKLETS=1)
+
+add_executable(gemv-example src/gemv/main.c)
+target_link_libraries(gemv-example PUBLIC ime-rt)
+target_link_options(gemv-example PUBLIC -DNR_TASKLETS=1)
+
 add_executable(msg src/msg/main.c)
 target_link_libraries(msg PUBLIC ime-rt)
 target_link_options(msg PUBLIC -DNR_TASKLETS=1)
