@@ -26,11 +26,12 @@ ime_chacha_blk:
     sw r22, 8, r2
     sw r22, 12, r3
     sw r22, 16, r4
+    sw r22, 20, r5
 
     // r14-r16 are callee saved - this has caused issues
-    sw r22, 20, r14
-    sw r22, 24, r15
-    sw r22, 28, r16
+    sw r22, 24, r14
+    sw r22, 28, r15
+    sw r22, 32, r16
 
     move r12, r1
     move r13, r2
@@ -136,34 +137,30 @@ chacha_add_key:
     add r11, r11, r16
 
 chacha_key_added:
+    lw r16, r22, 20
 
-    sw zero, chacha_output, r0
-    sw zero, chacha_output + 4, r1
-    sw zero, chacha_output + 8, r2
-    sw zero, chacha_output + 12, r3
-    sw zero, chacha_output + 16, r4
-    sw zero, chacha_output + 20, r5
-    sw zero, chacha_output + 24, r6
-    sw zero, chacha_output + 28, r7
-    sw zero, chacha_output + 32, r8
-    sw zero, chacha_output + 36, r9
-    sw zero, chacha_output + 40, r10
-    sw zero, chacha_output + 44, r11
-    sw zero, chacha_output + 48, r12
-    sw zero, chacha_output + 52, r13
-    sw zero, chacha_output + 56, r14
-    sw zero, chacha_output + 60, r15
+    sw r16, 0, r0
+    sw r16, 0 + 4, r1
+    sw r16, 0 + 8, r2
+    sw r16, 0 + 12, r3
+    sw r16, 0 + 16, r4
+    sw r16, 0 + 20, r5
+    sw r16, 0 + 24, r6
+    sw r16, 0 + 28, r7
+    sw r16, 0 + 32, r8
+    sw r16, 0 + 36, r9
+    sw r16, 0 + 40, r10
+    sw r16, 0 + 44, r11
+    sw r16, 0 + 48, r12
+    sw r16, 0 + 52, r13
+    sw r16, 0 + 56, r14
+    sw r16, 0 + 60, r15
 
-    lw r14, r22, 20
-    lw r15, r22, 24
-    lw r16, r22, 28
+    lw r14, r22, 24
+    lw r15, r22, 28
+    lw r16, r22, 32
 
     jump r23
 
 fault:
     fault 0x3
-
-.data
-.globl chacha_output
-chacha_output:
-    .fill 64
