@@ -960,7 +960,8 @@ int main(void) {
     }
 #endif
     for (int i = 0; i < 16; ++i) {
-        OUTPUT[i] = i + (i << 8) + (i << 16) + (i << 24);
+        int j = 16 - i;
+        OUTPUT[i] = j + (j << 8) + (j << 16) + (j << 24);
     }
 
     asm("stop");

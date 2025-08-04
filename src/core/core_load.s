@@ -24,10 +24,10 @@ ime_replace_sk:
     move r0, r21
     move r1, r18
     move r2, r19
-    move r22, 0x0
+    move r22, __sys_stack_thread_0
     call r23, ime_decrypt_sk
     move r0, r21
-    move r22, 0x0
+    move r22, __sys_stack_thread_0
     call r23, ime_scan_sk
 
     call r23, ime_load_wram
