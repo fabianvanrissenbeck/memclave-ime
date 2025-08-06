@@ -19,8 +19,9 @@ __bootstrap:
 
     jump zero, 0x1
 
+// unused tasklets aren't counted und must not be stopped via __ime_stop_tasklet
 stop_unused_tasklet:
-    jump __ime_stop_tasklet
+    stop t, __bootstrap
 
 __ime_replace_sk:
     jump 0x1
