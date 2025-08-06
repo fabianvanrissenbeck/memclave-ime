@@ -10,6 +10,8 @@ __bootstrap:
     add r22, r22, __sys_stack_thread_0
     call r23, main
 
+    call r23, __ime_stop_tasklet
+
     move r0, 0x3f00000
     move r1, 0x0
     move r2, 0x0
@@ -18,7 +20,7 @@ __bootstrap:
     jump zero, 0x1
 
 stop_unused_tasklet:
-    stop t, __bootstrap
+    jump __ime_stop_tasklet
 
 __ime_replace_sk:
     jump 0x1

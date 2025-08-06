@@ -12,7 +12,7 @@ target_link_options(ime PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/ld/core.ld)
 target_link_options(ime PUBLIC -nostartfiles)
 target_link_options(ime PUBLIC -DNR_TASKLETS=16)
 
-add_library(ime-rt src/ime-rt/boot.s src/ime-rt/ime.h)
+add_library(ime-rt src/ime-rt/boot.s src/ime-rt/ime.c src/ime-rt/ime.h)
 set_target_properties(ime-rt PROPERTIES LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/ld/user.ld)
 target_include_directories(ime-rt PUBLIC src/ime-rt)
 target_link_options(ime-rt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/ld/user.ld)
