@@ -12,6 +12,6 @@ SECTIONS
     *(.text.*)
     __ime_core_end = .;
     . = ALIGN(2048);
-    __ime_user_start = .;
+    __ime_user_start = 0x80002800;
   } > iram
 }

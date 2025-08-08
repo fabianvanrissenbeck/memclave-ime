@@ -10,6 +10,9 @@ ime_check_system:
     sw zero, 0, r1
     sw zero, 4, r2
 
+    move r1, id
+    add zero, zero, r1, nz, ime_sec_fault
+
     jump r0
 
 ime_sec_fault:
