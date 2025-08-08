@@ -11,12 +11,21 @@
 
 STATIC void poly_masked_reduce(uint32_t target[5], uint32_t mask) {
     bool carry = false;
-    uint32_t n[5] = { 0x5, 0x0, 0x0, 0x0, 0xFFFFFFFC };
 
     for (int i = 0; i < 5; ++i) {
-        bool new_carry = (uint32_t)(target[i] + n[i]) < n[i];
+        uint32_t n;
 
-        target[i] += (n[i] + carry) & mask;
+        if (i == 0) {
+            n = 5;
+        } else if (i == 4) {
+            n = 0xFFFFFFFC;
+        } else {
+            n = 0;
+        }
+
+        bool new_carry = (uint32_t)(target[i] + n) < n;
+
+        target[i] += (n + carry) & mask;
         carry = new_carry;
     }
 }
