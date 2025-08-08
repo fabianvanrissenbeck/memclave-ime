@@ -1,5 +1,7 @@
 #include "poly.h"
 
+#include <mram.h>
+#include <string.h>
 #include <stddef.h>
 #include <stdbool.h>
 
@@ -9,6 +11,15 @@
 #define STATIC static
 #endif
 
+#ifndef POLY_USE_ASM
+#define POLY_USE_ASM 1
+#endif
+
+#define OUTPUT ((uint32_t __mram_ptr*) ((64 << 20) - 64))
+
+#if POLY_USE_ASM == 1
+extern void poly_masked_reduce(uint32_t target[5], uint32_t mask);
+#else
 STATIC void poly_masked_reduce(uint32_t target[5], uint32_t mask) {
     bool carry = false;
 
@@ -29,6 +40,7 @@ STATIC void poly_masked_reduce(uint32_t target[5], uint32_t mask) {
         carry = new_carry;
     }
 }
+#endif
 
 /** return UINT32_MAX if n is larger or equal to (1 << 130) - 5 and 0 otherwise */
 STATIC uint32_t poly_reduction_req(const uint32_t n[5]) {
@@ -52,7 +64,13 @@ STATIC void poly_blind_reduce(uint32_t target[5]) {
     poly_masked_reduce(target, mask);
 }
 
-STATIC bool poly_add_assign(size_t n, uint32_t target[n], const uint32_t source[n]) {
+#if POLY_USE_ASM == 1
+extern void poly_add_assign_4(uint32_t target[4], const uint32_t source[4]);
+
+extern void poly_add_assign_5(uint32_t target[5], const uint32_t source[5]);
+
+#else
+STATIC void poly_add_assign(size_t n, uint32_t target[n], const uint32_t source[n]) {
     bool carry = false;
 
     for (size_t i = 0; i < n; ++i) {
@@ -61,28 +79,27 @@ STATIC bool poly_add_assign(size_t n, uint32_t target[n], const uint32_t source[
         target[i] = val & UINT32_MAX;
         carry = (val >> 32) != 0;
     }
-
-    return carry;
 }
 
+STATIC void poly_add_assign_4(uint32_t target[4], const uint32_t source[4]) {
+    poly_add_assign(4, target, source);
+}
+
+STATIC void poly_add_assign_5(uint32_t target[5], const uint32_t source[5]) {
+    poly_add_assign(5, target, source);
+}
+#endif
+
+#if POLY_USE_ASM == 1
+extern void poly_add_reduce(uint32_t target[5], const uint32_t block[5]);
+#else
 /** add a block of data to the target and reduce it below the prime */
 STATIC void poly_add_reduce(uint32_t target[5], const uint32_t block[5]) {
-    poly_add_assign(5, target, block);
+    poly_add_assign_5(target, block);
     // poly_blind_reduce(target);
     poly_fast_reduce(target);
 }
-
-/** multiply the target by two and reduce it below the prime */
-STATIC void poly_double_reduce(uint32_t target[5]) {
-    target[4] = target[4] << 1 | target[3] >> 31;
-    target[3] = target[3] << 1 | target[2] >> 31;
-    target[2] = target[2] << 1 | target[1] >> 31;
-    target[1] = target[1] << 1 | target[0] >> 31;
-    target[0] = target[0] << 1;
-
-    // poly_blind_reduce(target);
-    poly_fast_reduce(target);
-}
+#endif
 
 STATIC void poly_mul_key(poly_context* ctx) {
     uint32_t prod[5] = { 0 };
@@ -92,7 +109,7 @@ STATIC void poly_mul_key(poly_context* ctx) {
             poly_add_reduce(prod, ctx->a);
         }
 
-        poly_double_reduce(ctx->a);
+        poly_add_reduce(ctx->a, ctx->a);
     }
 
     poly_blind_reduce(prod);
@@ -124,7 +141,7 @@ void poly_init(poly_context* ctx, const uint32_t key[8]) {
 }
 
 void poly_finalize(poly_context* ctx, uint32_t tag[4]) {
-    poly_add_assign(4, ctx->a, ctx->s);
+    poly_add_assign_4(ctx->a, ctx->s);
 
     for (int i = 0; i < 4; ++i) {
         tag[i] = ctx->a[i];
