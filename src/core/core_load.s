@@ -21,6 +21,10 @@ ime_replace_sk:
      * of their WRAM while crossing to another subkernel must make sure that the first few sections
      * of WRAM are not used by them for anything persistent.
      */
+
+    move r0, r21
+    call r23, ime_push_sk
+
     move r0, r21
     move r1, r18
     move r2, r19
@@ -32,6 +36,8 @@ ime_replace_sk:
 
     call r23, ime_load_wram
     call r23, ime_load_iram
+
+    call r23, ime_pop_sk
 
     call r23, ime_unlock_memory
 

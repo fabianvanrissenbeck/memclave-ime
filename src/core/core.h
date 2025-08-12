@@ -65,8 +65,14 @@ void ime_scan_sk(void __mram_ptr* sk);
 /** load the MRAM portion of the subkernel */
 void ime_load_wram(void);
 
-/** load the IRAM portion of the subkernel */
-void ime_load_iram(void);
+/** load the IRAM portion of the subkernel - returns load address */
+void __mram_ptr* ime_load_iram(void);
+
+/** copy the passed subkernel to __ime_scratch_a */
+void ime_push_sk(const ime_sk __mram_ptr* sk);
+
+/** restore the passed subkernel from __ime_scratch_a */
+void ime_pop_sk(ime_sk __mram_ptr* sk);
 
 /**
  * @brief check that the current thread is in system mode

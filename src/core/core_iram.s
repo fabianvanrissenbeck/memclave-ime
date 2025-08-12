@@ -18,6 +18,9 @@ ime_load_iram:
     sw zero, __ime_wram_start, r0
     sw zero, __ime_wram_start + 4, r1
 
+    /* calculate return value */
+    add r0, r21, -64
+
     /* fault if size is either 0 or larger than 15 */
     xor zero, r2, 0, z, ime_sec_fault
     and r1, r2, 0xFFFFFFF0
