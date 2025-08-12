@@ -1,5 +1,11 @@
 SECTIONS
 {
+  .data.threadio 0xffc0 (NOLOAD) : {
+    __ime_threadio_start = .;
+    . += 64;
+    __ime_threadio_end = .;
+  }
+
   .mram 0x08000000 : {
     *(.mram)
     *(.mram.*)

@@ -3,6 +3,12 @@ PROVIDE(__ime_wram_end = 0x10000);
 
 SECTIONS
 {
+    .data.threadio 0xffc0 (NOLOAD) : {
+        __ime_threadio_start = .;
+        . += 64;
+        __ime_threadio_end = .;
+    }
+
     .mram 0x08000000 : {
         *(.mram)
         *(.mram.*)
