@@ -45,3 +45,8 @@ target_link_options(msg PUBLIC -DNR_TASKLETS=1)
 add_executable(multi-tasklet src/multi-tasklet/main.c)
 target_link_libraries(multi-tasklet PUBLIC ime-rt)
 target_link_options(multi-tasklet PUBLIC -DNR_TASKLETS=16)
+
+add_executable(sk-load-bench src/sk-load-bench/main.c src/core/poly.c src/core/poly.s)
+target_include_directories(sk-load-bench PRIVATE src/core)
+target_link_libraries(sk-load-bench PUBLIC ime-rt)
+target_link_options(multi-tasklet PUBLIC -DNR_TASKLETS=1)
