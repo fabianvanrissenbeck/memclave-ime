@@ -29,19 +29,21 @@ bool ime_decrypt_verify(ime_sk __mram_ptr* sk) {
     uint32_t chacha_output[16];
 
 #if 0
-    uint32_t key[8] = {
-        0x83828180,
-        0x87868584,
-        0x8b8a8988,
-        0x8f8e8d8c,
-        0x93929190,
-        0x97969594,
-        0x9b9a9998,
-        0x9f9e9d9c,
-    };
+    uint32_t key[8];
+
+    key[0] = 0x83828180;
+    key[1] = 0x87868584;
+    key[2] = 0x8b8a8988;
+    key[3] = 0x8f8e8d8c;
+    key[4] = 0x93929190;
+    key[5] = 0x97969594;
+    key[6] = 0x9b9a9998;
+    key[7] = 0x9f9e9d9c;
+#else
+    uint32_t* key = NULL;
 #endif
 
-    ime_chacha_blk(NULL, 0, sk->iv[0], sk->iv[1], sk->iv[2], chacha_output);
+    ime_chacha_blk(key, 0, sk->iv[0], sk->iv[1], sk->iv[2], chacha_output);
     poly_init(&ctx, chacha_output);
 
     // feed header and AEAD portion of the subkernel
@@ -79,7 +81,9 @@ bool ime_decrypt_verify(ime_sk __mram_ptr* sk) {
     }
 
     for (size_t i = sk->size_aad / 64; i < sk->size / 64; ++i) {
-        ime_chacha_blk(NULL, i - sk->size_aad / 64 + 1, sk->iv[0], sk->iv[1], sk->iv[2], chacha_output);
+
+
+        ime_chacha_blk(key, i - sk->size_aad / 64 + 1, sk->iv[0], sk->iv[1], sk->iv[2], chacha_output);
         xor_sk_chunk(sk, i, chacha_output);
     }
 

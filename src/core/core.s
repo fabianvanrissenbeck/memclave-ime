@@ -9,6 +9,7 @@ __bootstrap:
 
 core_on_boot:
     xor zero, id, 23, z, core_on_ctr_thread
+    xor zero, id, 22, z, core_on_chacha_thread
 
     /* when the ci-switch resolves a fault it starts the faulting thread at pc=0. Handle this case */
     xor zero, lneg, r23, z, core_on_sigret
@@ -78,3 +79,6 @@ core_on_ctr_thread:
     sw r4, 60, 0x0
 
     stop t, __bootstrap
+
+core_on_chacha_thread:
+    jump ime_chacha_thread
