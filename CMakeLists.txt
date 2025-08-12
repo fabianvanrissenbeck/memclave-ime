@@ -18,7 +18,7 @@ target_include_directories(ime-rt PUBLIC src/ime-rt)
 target_link_options(ime-rt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/ld/user.ld)
 target_link_options(ime-rt PUBLIC -nostartfiles)
 
-add_executable(user src/user/main.c src/user/poly.s)
+add_executable(user src/user/main.c)
 target_link_libraries(user PUBLIC ime-rt)
 target_link_options(user PUBLIC -DNR_TASKLETS=1)
 

@@ -12,7 +12,7 @@ __bootstrap:
 
     call r23, __ime_stop_tasklet
 
-    move r0, 0x3f00000
+    move r0, __ime_msg_sk
     move r1, 0x0
     move r2, 0x0
     move r3, 0x1
