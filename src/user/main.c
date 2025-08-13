@@ -1,22 +1,29 @@
 #include <ime.h>
-#include <mram.h>
+#include <stddef.h>
+#include <string.h>
+#include <assert.h>
 
-extern uint64_t __mram_noinit __ime_debug_out[8];
+extern uint64_t __mram_noinit __ime_msg_sk[];
+
+static const uint32_t key_template[8] = {
+    0x83828180,
+    0x87868584,
+    0x8b8a8988,
+    0x8f8e8d8c,
+    0x93929190,
+    0x97969594,
+    0x9b9a9998,
+    0x9f9e9d9c,
+};
+
+__attribute__((section(".data.persist")))
+static uint32_t key[8];
 
 int main(void) {
-    uint32_t ctr_a[16];
+    uint32_t* ptr = (uint32_t*) (32 << 10);
+    assert(ptr[0] == 0x0);
+    ptr[0] = 0x12345678;
 
-    __ime_get_counter(&ctr_a[0]);
-    __ime_get_counter(&ctr_a[4]);
-    __ime_get_counter(&ctr_a[8]);
-    __ime_get_counter(&ctr_a[12]);
-
-    uint32_t __mram_ptr* out = (uint32_t __mram_ptr*) &__ime_debug_out[0];
-
-    for (int i = 0; i < 16; ++i) {
-        out[i] = ctr_a[i];
-    }
-
-    asm("stop");
-    return 0;
+    memcpy(key, key_template, sizeof(key_template));
+    __ime_replace_sk(__ime_msg_sk, NULL, key);
 }

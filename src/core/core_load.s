@@ -1,6 +1,11 @@
 .text
 .globl ime_replace_sk
 
+// gets 4 parameters
+// 1. pointer to subkernel to load
+// 2. expected tag of the subkernel - or NULL if any valid subkernel is ok
+// 3. key to use or NULL to use system key
+// 4. pointer up to everything in WRAM will be wiped
 ime_replace_sk:
     move r20, __ime_user_start
     /* ldmai expects elf style addresses (so instruction index * 8) for some reason */
@@ -25,14 +30,25 @@ ime_replace_sk:
     move r0, r21
     call r23, ime_push_sk
 
+    // deploy stack canary
+    move r0, 0xef11b0d9
+    move r22, __sys_stack_thread_0
+    sw r22, STACK_SIZE_TASKLET_0 - 4, r0
+
     move r0, r21
     move r1, r18
     move r2, r19
-    move r22, __sys_stack_thread_0
+
     call r23, ime_decrypt_sk
     move r0, r21
     move r22, __sys_stack_thread_0
     call r23, ime_scan_sk
+
+    // check stack canary
+    move r22, __sys_stack_thread_0
+    lw r0, r22, STACK_SIZE_TASKLET_0 - 4
+    move r1, 0xef11b0d9
+    xor r0, r0, r1, nz, ime_sec_fault
 
     call r23, ime_load_wram
     call r23, ime_load_iram

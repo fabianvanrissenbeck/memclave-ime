@@ -54,7 +54,7 @@ void ime_unlock_memory(void);
  * @param tag expected tag - fails if any other tag is found instead
  * @param user_key key to use - may be NULL to use the system key - wiped after use
  */
-void ime_decrypt_sk(void __mram_ptr* sk, const uint8_t tag[12], uint8_t user_key[32]);
+void ime_decrypt_sk(ime_sk __mram_ptr* sk, const uint32_t tag[4], uint32_t user_key[8]);
 
 /**
  * @brief scan the subkernel for any banned instructions - fault if any are found

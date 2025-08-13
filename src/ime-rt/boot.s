@@ -16,7 +16,7 @@ __bootstrap:
     move r0, __ime_msg_sk
     move r1, 0x0
     move r2, 0x0
-    move r3, 0x1
+    move r3, __ime_persist_start
 
     jump zero, 0x1
 
@@ -25,6 +25,7 @@ stop_unused_tasklet:
     stop t, __bootstrap
 
 __ime_replace_sk:
+    move r3, __ime_persist_start
     jump 0x1
 
 __ime_wait_for_host:

@@ -23,11 +23,12 @@ static void xor_sk_chunk(const ime_sk __mram_ptr* sk, size_t chunk, const uint32
     }
 }
 
-bool ime_decrypt_verify(ime_sk __mram_ptr* sk) {
+bool ime_decrypt_verify(ime_sk __mram_ptr* sk, uint32_t key[8]) {
     poly_context ctx;
     uint32_t tag[4];
     uint32_t chacha_output[16];
 
+#if 0
 #if 0
     uint32_t key[8];
 
@@ -41,6 +42,7 @@ bool ime_decrypt_verify(ime_sk __mram_ptr* sk) {
     key[7] = 0x9f9e9d9c;
 #else
     uint32_t* key = NULL;
+#endif
 #endif
 
     ime_chacha_blk(key, 0, sk->iv[0], sk->iv[1], sk->iv[2], chacha_output);

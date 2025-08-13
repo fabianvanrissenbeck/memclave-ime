@@ -9,13 +9,14 @@ ime_lock_memory:
 ime_unlock_memory:
     jump r23
 
+// r17 contains pointer to first location not to wipe - use as counter
 ime_wipe_user:
-    xor zero, r17, 0, z, ime_no_wipe
+    move r0, r17
 
-    move r0, __ime_wram_end - 4
-wipe_loop:
-    sw r0, 0, 0
-    sub r0, r0, 4, pl, wipe_loop
+ime_wipe_loop:
+    add r0, r0, -4, mi, ime_wipe_done
+    sw r0, 0x0, 0x0
+    jump ime_wipe_loop
 
-ime_no_wipe:
+ime_wipe_done:
     jump r23

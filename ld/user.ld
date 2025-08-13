@@ -1,5 +1,11 @@
 SECTIONS
 {
+  .data.persist 0xffc0 - SIZEOF(.data.persist) (NOLOAD) : {
+    __ime_persist_start = .;
+    *(.data.persist)
+    __ime_persist_end = .;
+  }
+
   .data.threadio 0xffc0 (NOLOAD) : {
     __ime_threadio_start = .;
     . += 64;

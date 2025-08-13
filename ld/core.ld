@@ -3,6 +3,22 @@ PROVIDE(__ime_wram_end = 0x10000);
 
 SECTIONS
 {
+    .data 0x0 : {
+        *(.data .data.*)
+    }
+
+    .data.stacks (NOLOAD) : {
+        . = ALIGN(8);
+        __sys_stack_thread_0 = .;
+        . += STACK_SIZE_TASKLET_0;
+    }
+
+    .data.sw_cache (NOLOAD) : {
+        . = ALIGN(8);
+        __sw_cache_buffer = .;
+        . += 8 * NR_TASKLETS;
+    }
+
     .data.threadio 0xffc0 (NOLOAD) : {
         __ime_threadio_start = .;
         . += 64;
