@@ -11,15 +11,45 @@
 #include <mutex.h>
 #include <perfcounter.h>
 
-#define SK_LOG_ENABLED 1
+//#define SK_LOG_ENABLED 1
+#define TASKLETS 16
 #include "dpu-utils.h"
 #include "support/common.h"
 #include "support/log.h"
 
-//BARRIER_INIT(my_barrier, NR_TASKLETS);
+// Shared state in WRAM
+__attribute__((aligned(8)))
+static volatile struct {
+    volatile uint32_t arrive[TASKLETS];
+    volatile uint32_t release_epoch;
+} gbar;
 
-//BARRIER_INIT(bfsBarrier, NR_TASKLETS);
-MUTEX_INIT(nextFrontierMutex);
+// Call once at start (before first use)
+static inline void mybarrier_init(void) {
+    if (me() == 0) {
+        for (uint32_t i = 0; i < TASKLETS; i++) gbar.arrive[i] = 0;
+        gbar.release_epoch = 0;
+    }
+}
+
+static inline void mybarrier_wait(void) {
+    const uint32_t tid = me();
+    // Every barrier use increments the epoch by 1
+    const uint32_t want = gbar.release_epoch + 1;
+
+    // Signal arrival (write *own* slot only)
+    gbar.arrive[tid] = want;
+
+    if (tid == 0) {
+        // Wait for all tasklets to reach this epoch
+        for (uint32_t i = 0; i < TASKLETS; i++) {
+            while (gbar.arrive[i] != want) { /* spin */ }
+        }
+        gbar.release_epoch = want;
+    } else {
+        while (gbar.release_epoch != want) { /* spin */ }
+    }
+}
 
 #define TEST_OFFSET 0x1000   // pick any MRAM offset ≥ 0 and < 64 MiB-8
 #define ARG_OFFSET 0x3000
@@ -39,16 +69,16 @@ int main1(void) {
 int main() {
 
     if(me() == 0) {
+	mybarrier_init();
         mem_reset(); // Reset the heap
     }
+    for (int i = 0; i<100; i++);
+    mybarrier_wait();
     sk_log_init();
-    // Barrier
-    //barrier_wait(&my_barrier);
 
     // Load parameters
     uint32_t params_m = (uint32_t) DPU_MRAM_HEAP_POINTER;
     struct DPUParams* params_w = (struct DPUParams*) mem_alloc(ROUND_UP_TO_MULTIPLE_OF_8(sizeof(struct DPUParams)));
-    //struct DPUParams params_w;
     mram_read((__mram_ptr void const*)ARG_OFFSET, params_w, ROUND_UP_TO_MULTIPLE_OF_8(sizeof(struct DPUParams)));
 
     // Extract parameters
@@ -63,6 +93,13 @@ int main() {
     uint32_t visited_m = params_w->dpuVisited_m;
     uint32_t currentFrontier_m = params_w->dpuCurrentFrontier_m;
     uint32_t nextFrontier_m = params_w->dpuNextFrontier_m;
+    uint32_t nextFrontierPriv_m = params_w->dpuNextFrontierPriv_m;
+
+    // global bitmap geometry (you already check numGlobalNodes % 64 == 0 above)
+    const uint32_t globalWords = numGlobalNodes / 64;
+    const uint32_t priv_stride_bytes = globalWords * sizeof(uint64_t);
+    const uint32_t next_priv_base = nextFrontierPriv_m + me() * priv_stride_bytes;
+
     sk_log_write_idx(0, numNodes);
     sk_log_write_idx(1, numNodes);
     sk_log_write_idx(2, numGlobalNodes);
@@ -83,22 +120,19 @@ int main() {
         }
 
         // Allocate WRAM cache for each tasklet to use throughout
-        uint64_t* cache_w = mem_alloc(sizeof(uint64_t));
+        uint64_t* cache_w = mem_alloc(2 * sizeof(uint64_t));
+	// Zero this tasklet's private next-frontier shard
+        for (uint32_t w = 0; w < globalWords; ++w) {
+            store8B(0, next_priv_base, w, cache_w);
+        }
+
         uint32_t firstPtr = load4B(nodePtrs_m, 0, cache_w);
 
         // Update current frontier and visited list based on the next frontier from the previous iteration
-        for(uint32_t nodeTileIdx = me(); nodeTileIdx < numGlobalNodes/64; nodeTileIdx += NR_TASKLETS) {
+        for(uint32_t nodeTileIdx = me(); nodeTileIdx < numGlobalNodes/64; nodeTileIdx += TASKLETS) {
 
             // Get the next frontier tile from MRAM
             uint64_t nextFrontierTile = load8B(nextFrontier_m, nodeTileIdx, cache_w);
-  		// Tasklet 0 logs how many bits it set this round
-		  if (me() == 0) {
-		    uint64_t localCount = 0;
-		    for (int tile = 0; tile < (numNodes/64); ++tile) {
-		      uint64_t f = load8B(nextFrontier_m, tile, cache_w);
-		      localCount += __builtin_popcountll(f);
-		    }
-		  }
 
             // Process next frontier tile if it is not empty 
             if(nextFrontierTile) {
@@ -132,12 +166,11 @@ int main() {
             }
 
         }
-
         // Wait until all tasklets have updated the current frontier
-        //barrier_wait(&bfsBarrier);
+        mybarrier_wait();
 
         // Identify tasklet's nodes
-        uint32_t numNodesPerTasklet = (numNodes + NR_TASKLETS - 1)/NR_TASKLETS;
+        uint32_t numNodesPerTasklet = (numNodes + TASKLETS - 1)/TASKLETS;
         uint32_t taskletNodesStart = me()*numNodesPerTasklet;
         uint32_t taskletNumNodes;
         if(taskletNodesStart > numNodes) {
@@ -149,7 +182,6 @@ int main() {
         }
 
         // Visit neighbors of the current frontier
-        //mutex_id_t mutexID = MUTEX_GET(nextFrontierMutex);
         for(uint32_t node = taskletNodesStart; node < taskletNodesStart + taskletNumNodes; ++node) {
             uint32_t nodeTileIdx = node/64;
             uint64_t currentFrontierTile = load8B(currentFrontier_m, nodeTileIdx, cache_w); // TODO: Optimize: load tile then loop over nodes in the tile
@@ -163,15 +195,25 @@ int main() {
                     uint64_t visitedTile = load8B(visited_m, neighborTileIdx, cache_w);
                     if(!isSet(visitedTile, neighbor%64)) { // Neighbor not previously visited
                         // Add neighbor to next frontier
-                        //mutex_lock(mutexID); // TODO: Optimize: use more locks to reduce contention
-                        mutex_lock(nextFrontierMutex); // TODO: Optimize: use more locks to reduce contention
-                        uint64_t nextFrontierTile = load8B(nextFrontier_m, neighborTileIdx, cache_w);
-                        setBit(nextFrontierTile, neighbor%64);
-                        store8B(nextFrontierTile, nextFrontier_m, neighborTileIdx, cache_w);
-                        mutex_unlock(nextFrontierMutex);
+                        uint64_t privWord = load8B(next_priv_base, neighborTileIdx, cache_w);
+                        setBit(privWord, neighbor % 64);
+                        store8B(privWord, next_priv_base, neighborTileIdx, cache_w);
+
                     }
                 }
             }
+        }
+	mybarrier_wait();
+	// Reduce per-tasklet shards into the global nextFrontier_m
+        // One writer per global 64-bit word: w is striped by tasklet id
+        for (uint32_t w = me(); w < globalWords; w += TASKLETS) {
+            uint64_t acc = 0;
+            // OR all TASKLETS' shards at word w
+            for (uint32_t t = 0; t < TASKLETS; ++t) {
+                const uint32_t base_t = nextFrontierPriv_m + t * priv_stride_bytes;
+                acc |= load8B(base_t, w, cache_w);
+            }
+            store8B(acc, nextFrontier_m, w, cache_w);
         }
 
     }

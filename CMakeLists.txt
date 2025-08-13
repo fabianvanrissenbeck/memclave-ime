@@ -32,11 +32,11 @@ target_link_options(gemv-example PUBLIC -DNR_TASKLETS=1)
 
 add_executable(mlp-example src/MLP/main.c)
 target_link_libraries(mlp-example PUBLIC ime-rt)
-target_link_options(mlp-example PUBLIC -DNR_TASKLETS=1)
+target_link_options(mlp-example PUBLIC -DNR_TASKLETS=16)
 
 add_executable(bfs-example src/BFS/main.c)
 target_link_libraries(bfs-example PUBLIC ime-rt)
-target_link_options(bfs-example PUBLIC -DNR_TASKLETS=1)
+target_link_options(bfs-example PUBLIC -DNR_TASKLETS=16)
 
 add_executable(msg src/msg/main.c)
 target_link_libraries(msg PUBLIC ime-rt)
