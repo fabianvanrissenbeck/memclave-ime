@@ -9,7 +9,7 @@ option(UNSAFE_BUILD ON FORCE)
 option(MBEDTLS_FATAL_WARNINGS OFF FORCE)
 
 add_compile_options(-DMBEDTLS_CONFIG_FILE="${CMAKE_CURRENT_SOURCE_DIR}/mbedtls_config.h")
-add_compile_options(-Oz)
+add_compile_options(-O3)
 add_compile_options(-fno-inline)
 
 add_subdirectory(mbedtls)
