@@ -7,7 +7,6 @@
 #include <defs.h>
 #include <mram.h>
 #include <alloc.h>
-#include <barrier.h>
 #include <seqread.h>
 
 #include "support/common.h"
@@ -18,9 +17,43 @@
 #define ARG_SIZE       sizeof(dpu_arguments_t)
 #define A_OFFSET       (ARG_OFFSET + ((ARG_SIZE + 0xFF) & ~0xFF))
 
-#define NR_TASKLETS 1
+#define TASKLETS 16
 
 __host dpu_arguments_t DPU_INPUT_ARGUMENTS;
+
+// Shared state in WRAM
+__attribute__((aligned(8)))
+static volatile struct {
+    volatile uint32_t arrive[TASKLETS];
+    volatile uint32_t release_epoch;
+} gbar;
+
+// Call once at start (before first use)
+static inline void mybarrier_init(void) {
+    if (me() == 0) {
+        for (uint32_t i = 0; i < TASKLETS; i++) gbar.arrive[i] = 0;
+        gbar.release_epoch = 0;
+    }
+}
+
+static inline void mybarrier_wait(void) {
+    const uint32_t tid = me();
+    // Every barrier use increments the epoch by 1
+    const uint32_t want = gbar.release_epoch + 1;
+
+    // Signal arrival (write *own* slot only)
+    gbar.arrive[tid] = want;
+
+    if (tid == 0) {
+        // Wait for all tasklets to reach this epoch
+        for (uint32_t i = 0; i < TASKLETS; i++) {
+            while (gbar.arrive[i] != want) { /* spin */ }
+        }
+        gbar.release_epoch = want;
+    } else {
+        while (gbar.release_epoch != want) { /* spin */ }
+    }
+}
 
 // GEMV
 static void gemv(T *bufferC, T *bufferA, T *bufferB, int pos) {
@@ -30,9 +63,6 @@ static void gemv(T *bufferC, T *bufferA, T *bufferB, int pos) {
 	return;
 }
 
-// Barrier
-//BARRIER_INIT(my_barrier, NR_TASKLETS);
-
 // main
 int main() {
 	unsigned int tasklet_id = me();
@@ -40,14 +70,16 @@ int main() {
 	printf("tasklet_id = %u\n", tasklet_id);
 #endif
 	if (tasklet_id == 0){ // Initialize once the cycle counter
+		mybarrier_init();
 		mem_reset(); // Reset the heap
 	}
 	// read args from MRAM
         mram_read((__mram_ptr void const*)ARG_OFFSET,
                   &DPU_INPUT_ARGUMENTS,
                   sizeof(dpu_arguments_t));
+	for(int i = 0; i<1000; i++);
 	// Barrier
-	//barrier_wait(&my_barrier);
+        mybarrier_wait();
 
 	int32_t n_size = DPU_INPUT_ARGUMENTS.n_size;
 	int32_t n_size_pad = DPU_INPUT_ARGUMENTS.n_size_pad;
@@ -58,10 +90,10 @@ int main() {
 	unsigned int nrows = nr_rows;
 	unsigned int rows_per_tasklet; 
 	unsigned int start_row;
-	unsigned int chunks = nrows / (NR_TASKLETS + NR_TASKLETS);
+	unsigned int chunks = nrows / (TASKLETS + TASKLETS);
 	unsigned int dbl_chunks = chunks + chunks;                                                                       
 	rows_per_tasklet = dbl_chunks;
-	unsigned int rest_rows = nrows % (NR_TASKLETS + NR_TASKLETS);
+	unsigned int rest_rows = nrows % (TASKLETS + TASKLETS);
 
 	if ((tasklet_id + tasklet_id) < rest_rows)
 		rows_per_tasklet += 2;
@@ -86,16 +118,8 @@ int main() {
         uint32_t base_B = A_OFFSET + slice_bytes;
         uint32_t base_C = base_B + vec_bytes;
 
-#if 0
-	// Address of the current row in MRAM
-	uint32_t mram_base_addr_A = (uint32_t) (DPU_MRAM_HEAP_POINTER + start_row * n_size * sizeof(T));
-	uint32_t mram_base_addr_B = (uint32_t) (DPU_MRAM_HEAP_POINTER + max_rows * n_size_pad * sizeof(T));
-	uint32_t mram_base_addr_C = (uint32_t) (DPU_MRAM_HEAP_POINTER + max_rows * n_size_pad * sizeof(T) + n_size_pad * sizeof(T) + start_row * sizeof(T));
-	uint32_t mram_temp_addr_A = mram_base_addr_A;
-	uint32_t mram_temp_addr_B = mram_base_addr_B;
-#endif
         // Address of the current row in MRAM
-        uint32_t mram_base_addr_A = base_A + start_row * n_size * sizeof(T);
+        uint32_t mram_base_addr_A = base_A + start_row * n_size_pad * sizeof(T);
         uint32_t mram_base_addr_B = base_B;
         uint32_t mram_base_addr_C = base_C + start_row * sizeof(T);
         uint32_t mram_temp_addr_A = mram_base_addr_A;
@@ -105,20 +129,17 @@ int main() {
 	T *cache_A = (T *) mem_alloc(BLOCK_SIZE + 8);
 	T *cache_A_aux = (T *) mem_alloc(8);
 	T *cache_B = (T *) mem_alloc(BLOCK_SIZE);
-	T *cache_C = (T *) mem_alloc(8);
+	T *cache_C = (T *) mem_alloc(2 * sizeof(T));
 
 	int offset = 0;
 
 	// Iterate over nr_rows
 	for (unsigned int i = start_row; i < start_row + rows_per_tasklet; i += 2) {
-
-		//mram_temp_addr_A = (uint32_t) (DPU_MRAM_HEAP_POINTER + i * n_size * sizeof(T));
-		mram_temp_addr_A = (uint32_t) (base_A + i * n_size * sizeof(T));
-		mram_temp_addr_B = mram_base_addr_B;
-
 		cache_C[0] = 0;
 		cache_C[1] = 0;
 		for(unsigned int pos = 0; pos < 2 && i + pos < nr_rows; pos++){
+		        mram_temp_addr_A = (uint32_t) (base_A + (i + pos) * n_size_pad * sizeof(T));
+		        mram_temp_addr_B = mram_base_addr_B;
 			int n = 0, j;
 			for (n = 0; n < (int32_t) (n_size - (BLOCK_SIZE/sizeof(T))); n += (BLOCK_SIZE / sizeof(T)))
 			{
@@ -182,7 +203,7 @@ int main() {
 
 			if(mram_temp_addr_A % 8 != 0)
 			{
-				offset = 1;
+				//offset = 1;
 			}
 			else
 			{
@@ -190,10 +211,12 @@ int main() {
 			}
 		}
 		// Write cache to current MRAM block
-		mram_write(cache_C, (__mram_ptr void *) (mram_base_addr_C), 2 * sizeof(T));
-
 		// Update memory address
-		mram_base_addr_C += 2 * sizeof(T);
+		uint32_t rows_this_iter = 0;
+		if (i < nr_rows) rows_this_iter++;
+		if (i + 1 < nr_rows) rows_this_iter++;
+		mram_write(cache_C, (__mram_ptr void *)(mram_base_addr_C), rows_this_iter * sizeof(T));
+		mram_base_addr_C += rows_this_iter * sizeof(T);
 
 	}
 
