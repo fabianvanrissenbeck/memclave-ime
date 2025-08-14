@@ -53,3 +53,14 @@ add_executable(sk-load-bench src/sk-load-bench/main.c src/core/poly.c src/core/p
 target_include_directories(sk-load-bench PRIVATE src/core)
 target_link_libraries(sk-load-bench PUBLIC ime-rt)
 target_link_options(multi-tasklet PUBLIC -DNR_TASKLETS=1)
+
+add_executable(dma-bench src/dma/main.c)
+target_link_libraries(dma-bench PUBLIC ime-rt)
+target_link_options(dma-bench PUBLIC -DNR_TASKLETS=1)
+target_compile_options(dma-bench PUBLIC -O3)
+
+add_executable(wram2-bench src/wram2/main.c)
+target_link_libraries(wram2-bench PUBLIC ime-rt)
+target_link_options(wram2-bench PUBLIC -DNR_TASKLETS=16)
+target_compile_options(wram2-bench PUBLIC -DNR_TASKLETS=16)
+target_compile_options(wram2-bench PUBLIC -O3)
