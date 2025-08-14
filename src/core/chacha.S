@@ -86,18 +86,18 @@ ime_chacha_thread:
     move r10, r22
     move r11, r23
 
-chacha_block_entry:
-    move r0, 0x61707865
-    move r1, 0x3320646e
-    move r2, 0x79622d32
-    move r3, 0x6b206574
-
     // use run bits as loop counter because no other registers are free
 
     clr_run zero, 24, t, .+1
     clr_run zero, 25, t, .+1
     clr_run zero, 26, t, .+1
     clr_run zero, 27, t, .+1
+
+chacha_block_entry:
+    move r0, 0x61707865
+    move r1, 0x3320646e
+    move r2, 0x79622d32
+    move r3, 0x6b206574
 
 chacha_loop:
     QUARTERROUND(r0, r4, r8, r12)
@@ -109,6 +109,8 @@ chacha_loop:
     QUARTERROUND(r2, r7, r8, r13)
     QUARTERROUND(r3, r4, r9, r14)
 
+    xor zero, id, 22, z, .+2
+    sub r16, r16, 1, nz, chacha_loop
     clr_run zero, 27, nz, chacha_loop_lt_8
 
     boot zero, 24, z, chacha_loop
@@ -122,8 +124,6 @@ chacha_loop:
 chacha_loop_lt_8:
     boot zero, 27
     boot zero, 24, z, chacha_loop
-
-    // sub r16, r16, 1, nz, chacha_loop
 
     // add nothing up my sleeve numbers
 
@@ -221,6 +221,7 @@ ime_chacha_user_key:
     lw r10, r0, 0x18
     lw r11, r0, 0x1C
 
+    move r16, 10
     jump chacha_block_entry
 
 ime_chacha_user_exit:

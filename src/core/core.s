@@ -22,6 +22,7 @@ core_cont_boot:
     move r0, 0x3f00000 // 63 MiB - location of the messaging kernel
     move r1, 0x0       // no verification for now
     move r2, 0x0       // use system key
+    move r3, 0x0       // don't wipe on boot
 
     jump zero, ime_replace_sk
 
