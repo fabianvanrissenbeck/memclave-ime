@@ -23,6 +23,8 @@ target_link_options(ime-rt PUBLIC -nostartfiles)
 add_executable(user src/user/main.c)
 target_link_libraries(user PUBLIC ime-rt)
 target_link_options(user PUBLIC -DNR_TASKLETS=1)
+target_compile_definitions(user PUBLIC -DNR_TASKLETS=1)
+target_compile_options(user PRIVATE -O3)
 
 add_executable(add-example src/add/main.c)
 target_link_libraries(add-example PUBLIC ime-rt)

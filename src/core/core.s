@@ -6,6 +6,7 @@ __bootstrap:
     jump zero, core_on_replace
     jump zero, core_on_signal
     jump zero, core_on_counter
+    jump zero, core_on_chacha
 
 core_on_boot:
     xor zero, id, 23, z, core_on_ctr_thread
@@ -82,3 +83,6 @@ core_on_ctr_thread:
 
 core_on_chacha_thread:
     jump ime_chacha_thread
+
+core_on_chacha:
+    jump ime_chacha_blk

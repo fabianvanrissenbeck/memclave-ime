@@ -3,6 +3,7 @@
 .globl __ime_wait_for_host
 .globl __ime_replace_sk
 .globl __ime_get_counter
+.globl __ime_chacha_blk
 
 __bootstrap:
     sub zero, NR_TASKLETS-1, id, mi, stop_unused_tasklet
@@ -33,3 +34,6 @@ __ime_wait_for_host:
 
 __ime_get_counter:
     jump 0x3
+
+__ime_chacha_blk:
+    jump 0x4
