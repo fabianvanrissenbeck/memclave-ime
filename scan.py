@@ -81,7 +81,7 @@ def main(sk_file):
         is_banned, reason = banned(n)
 
         if is_banned:
-            print("Banned instruction at 0x{:x} (index {}). Reason: \"{}\"".format(0x80000800 + i * 8, i, reason))
+            print("Banned instruction at 0x{:x} (index {}). Reason: \"{}\"".format(0x80002800 + i * 8, i, reason))
 
 
 if __name__ == "__main__":
