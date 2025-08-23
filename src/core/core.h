@@ -42,12 +42,6 @@ void ime_check_threads(void);
 /** fully wipe WRAM from user data excluding the user key which is wiped later */
 void ime_wipe_user(void);
 
-/** lock MRAM from external accesses */
-void ime_lock_memory(void);
-
-/** unlock MRAM from external accesses */
-void ime_unlock_memory(void);
-
 /**
  * @brief decrypt the subkernel in place in MRAM and verify its authenticity
  * @param sk pointer to the subkernel structure

@@ -47,16 +47,6 @@ ime_chacha_wait_loop:
     jump r23
 
 ime_chacha_thread:
-    // immutable key registers - dummy: should be set by hypervisor/ci-switch
-    move r16, 0x83828180
-    move r17, 0x87868584
-    move r18, 0x8b8a8988
-    move r19, 0x8f8e8d8c
-    move r20, 0x93929190
-    move r21, 0x97969594
-    move r22, 0x9b9a9998
-    move r23, 0x9f9e9d9c
-
     move r0, __ime_threadio_start
 
     // back up the value at location NULL - we use it to store one value of the
@@ -65,18 +55,23 @@ ime_chacha_thread:
     lw r1, zero, 0x0
     sw r0, 0x18, r1
 
-    lw r5, r0, 0x14
-    lw r4, r0, 0x10
-    lw r3, r0, 0x0C
-    lw r2, r0, 0x08
-    lw r1, r0, 0x04
-    lw r0, r0, 0x00
+    lw r15, r0, 0x10
+    lw r14, r0, 0x0C
+    lw r13, r0, 0x08
+    lw r12, r0, 0x04
 
-    move r12, r1
-    move r13, r2
-    move r14, r3
-    move r15, r4
+    // dummy load instead of using immutable key registers for testing
+    move r4, 0x83828180
+    move r5, 0x87868584
+    move r6, 0x8b8a8988
+    move r7, 0x8f8e8d8c
+    move r8, 0x93929190
+    move r9, 0x97969594
+    move r10, 0x9b9a9998
+    move r11, 0x9f9e9d9c
 
+/*
+    // load key from immutable key register r16 - r23 (inclusive)
     move r4, r16
     move r5, r17
     move r6, r18
@@ -85,6 +80,7 @@ ime_chacha_thread:
     move r9, r21
     move r10, r22
     move r11, r23
+*/
 
     // use run bits as loop counter because no other registers are free
 
@@ -167,6 +163,19 @@ chacha_loop_lt_8:
     lw r1, r0, 0x10
     add r15, r15, r1
 
+    // dummy add instead of code below
+
+    add r4, r4, 0x83828180
+    add r5, r5, 0x87868584
+    add r6, r6, 0x8b8a8988
+    add r7, r7, 0x8f8e8d8c
+    add r8, r8, 0x93929190
+    add r9, r9, 0x97969594
+    add r10, r10, 0x9b9a9998
+    add r11, r11, 0x9f9e9d9c
+
+/*
+    // add from immutable registers
     add r4, r4, r16
     add r5, r5, r17
     add r6, r6, r18
@@ -175,6 +184,7 @@ chacha_loop_lt_8:
     add r9, r9, r21
     add r10, r10, r22
     add r11, r11, r23
+*/
 
     lw r1, r0, 20
 

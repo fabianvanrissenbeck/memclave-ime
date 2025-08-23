@@ -17,7 +17,6 @@ ime_replace_sk:
     move r21, r0
 
     call r23, ime_check_threads
-    call r23, ime_lock_memory
     call r23, ime_wipe_user
 
     /*
@@ -55,32 +54,19 @@ ime_replace_sk:
 
     call r23, ime_pop_sk
 
-    call r23, ime_unlock_memory
+    add.u d0, zero, 0x0, z
+    add.u d2, zero, 0x0, z
+    add.u d4, zero, 0x0, z
+    add.u d6, zero, 0x0, z
+    add.u d8, zero, 0x0, z
+    add.u d10, zero, 0x0, z
+    add.u d12, zero, 0x0, z
+    add.u d14, zero, 0x0, z
+    add.u d16, zero, 0x0, z
+    add.u d18, zero, 0x0, z
+    add.u d22, zero, 0x0, z
 
-    move r0, 0x0
-    move r1, 0x0
-    move r2, 0x0
-    move r3, 0x0
-
-    move r4, 0x0
-    move r5, 0x0
-    move r6, 0x0
-    move r7, 0x0
-
-    move r8, 0x0
-    move r9, 0x0
-    move r10, 0x0
-    move r11, 0x0
-
-    move r12, 0x0
-    move r13, 0x0
-    move r14, 0x0
-    move r16, 0x0
-
-    move r17, 0x0
-    move r18, 0x0
     move r19, 0x0
-
     move r20, 4096 * 8
     move r21, 64 * 1024 * 1024
 
@@ -90,8 +76,5 @@ resume_loop:
     resume r0, 0
     jump resume_loop
 resume_end:
-
-    move r22, 0x0
-    move r23, 0x0
 
     jump zero, __ime_user_start

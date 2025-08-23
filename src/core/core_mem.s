@@ -1,13 +1,5 @@
 .text
-.globl ime_lock_memory
-.globl ime_unlock_memory
 .globl ime_wipe_user
-
-ime_lock_memory:
-    jump r23
-
-ime_unlock_memory:
-    jump r23
 
 // r17 contains pointer to first location not to wipe - use as counter
 ime_wipe_user:

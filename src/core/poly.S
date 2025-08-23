@@ -20,9 +20,33 @@
 
 .text
 .globl poly_masked_reduce
-.globl poly_add_assign_4
 .globl poly_add_reduce
 .globl poly_mul_assign
+.globl poly_add_128
+
+// poly_add_128(uint32_t target[4], uint32_t a[4], uint32_t b[4]);
+poly_add_128:
+    lw r3, r1, 0x0
+    lw r4, r1, 0x4
+    lw r5, r1, 0x8
+    lw r6, r1, 0xC
+
+    lw r7, r2, 0x0
+    lw r8, r2, 0x4
+    lw r9, r2, 0x8
+    lw r10, r2, 0xC
+
+    add r3, r3, r7
+    addc r4, r4, r8
+    addc r5, r5, r9
+    addc r6, r6, r10
+
+    sw r0, 0x0, r3
+    sw r0, 0x4, r4
+    sw r0, 0x8, r5
+    sw r0, 0xC, r6
+
+    jump r23
 
 poly_masked_reduce:
     lw r2, r0, 0x0
@@ -49,31 +73,6 @@ poly_masked_reduce:
 
     jump r23
 
-// extern void poly_add_assign_5(uint32_t target[5], const uint32_t src[5]);
-
-poly_add_assign_4:
-    lw r2, r0, 0x0
-    lw r3, r0, 0x4
-    lw r4, r0, 0x8
-    lw r5, r0, 0xC
-
-    lw r7, r1, 0x0
-    lw r8, r1, 0x4
-    lw r9, r1, 0x8
-    lw r10, r1, 0xC
-
-    add r2, r2, r7
-    addc r3, r3, r8
-    addc r4, r4, r9
-    addc r5, r5, r10
-
-    sw r0, 0x0, r2
-    sw r0, 0x4, r3
-    sw r0, 0x8, r4
-    sw r0, 0xC, r5
-
-    jump r23
-
 poly_add_reduce:
     lw r2, r0, 0x0
     lw r3, r0, 0x4
@@ -85,7 +84,7 @@ poly_add_reduce:
     lw r8, r1, 0x4
     lw r9, r1, 0x8
     lw r10, r1, 0xC
-    lw r11, r1, 0x10
+    move r11, 0x1 // add 2^128 to each block
 
     POLY_ADD_REDUCE(r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r7, r8)
 
