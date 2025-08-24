@@ -61,7 +61,7 @@ int main(void) {
 
     case IME_MRAM_MSG_LOAD_SK:
         __ime_msg_buf.type = IME_MRAM_MSG_NOP;
-        __ime_replace_sk((void __mram_ptr*) __ime_msg_buf.load.ptr, NULL, NULL, 1);
+        __ime_replace_sk((void __mram_ptr*) __ime_msg_buf.load.ptr, NULL, NULL);
         break;
 
     default:

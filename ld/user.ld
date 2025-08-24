@@ -21,7 +21,11 @@ SECTIONS
     . = 0xbf00000;
     __ime_msg_sk = .;
     . += 128 << 10;
-    __ime_xchg_sk = .;
+    __ime_xchg_sk_1 = .;
+    . += 128 << 10;
+    __ime_xchg_sk_2 = .;
+    . += 128 << 10;
+    __ime_xchg_sk_3 = .;
     . += 128 << 10;
     __ime_scratch_a = .;
     . += 128 << 10;

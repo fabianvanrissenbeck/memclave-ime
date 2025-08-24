@@ -1,3 +1,6 @@
+#include "ime.h"
+#include "common.h"
+
 #include "mbedtls/dhm.h"
 #include "mbedtls/bignum.h"
 
@@ -6,8 +9,6 @@
 #include <assert.h>
 #include <string.h>
 #include <perfcounter.h>
-
-extern uint32_t __mram_noinit __ime_debug_out[16];
 
 // little endian version of MBEDTLS_DHM_RFC3526_MODP_2048_P_BIN
 const uint32_t ime_raw_prime[] = {
@@ -52,19 +53,6 @@ const uint8_t ime_dhm_gen[] = MBEDTLS_DHM_RFC3526_MODP_2048_G_BIN;
 size_t n_alloc = 0;
 size_t m_alloc = 0;
 
-struct ime_xchg_io {
-    union {
-        struct {
-            uint32_t client_pk_in[64];
-            uint32_t xchg_cnt_in[4];
-        } in;
-        struct {
-            uint32_t xchg_shared_out[64];
-            uint32_t xchg_cnt_out[4];
-        } out;
-    };
-};
-
 __attribute__((section(".data.persist")))
 struct ime_xchg_io g_xchg_io;
 
@@ -91,14 +79,6 @@ int main(void) {
     buddy_init(8192 * 2);
     mbedtls_mpi_init(&pk);
 
-    // overwrite the client key with 2 for testing purposes. TODO: Remove this
-
-    for (int i = 1; i < 64; ++i) {
-        g_xchg_io.in.client_pk_in[i] = 0;
-    }
-
-    g_xchg_io.in.client_pk_in[0] = 2;
-
     int res = mbedtls_mpi_exp_mod(&pk, &ime_client_pub, &ime_dhm_s, &ime_dhm_p, NULL);
 
     if (res == MBEDTLS_ERR_MPI_ALLOC_FAILED) {
@@ -107,9 +87,10 @@ int main(void) {
 
     assert(res == 0);
 
-    __ime_debug_out[0] = pk.private_p[0];
+    for (int i = 0; i < 64; ++i) {
+        g_xchg_io.out.xchg_shared_out[i] = pk.private_p[i];
+    }
 
-    // TODO: Hand over shared secret to third key exchange stage
-    asm("stop");
-    return 0;
+    __ime_replace_sk(__ime_xchg_sk_3, NULL, NULL);
+    __builtin_unreachable();
 }

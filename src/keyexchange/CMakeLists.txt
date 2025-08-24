@@ -13,8 +13,18 @@ add_compile_options(-fno-inline)
 
 add_subdirectory(mbedtls)
 
-add_executable(keyexchange main.c)
-target_link_libraries(keyexchange PUBLIC ime-rt)
-target_include_directories(keyexchange PUBLIC mbedtls/include/)
-target_link_libraries(keyexchange PUBLIC mbedcrypto)
-target_link_options(keyexchange PUBLIC -DNR_TASKLETS=1)
+add_executable(keyexchange1 stage1.c)
+target_link_libraries(keyexchange1 PUBLIC ime-rt)
+target_link_options(keyexchange1 PUBLIC -DNR_TASKLETS=1)
+
+add_executable(keyexchange2 stage2.c)
+target_link_libraries(keyexchange2 PUBLIC ime-rt)
+target_include_directories(keyexchange2 PUBLIC mbedtls/include/)
+target_link_libraries(keyexchange2 PUBLIC mbedcrypto)
+target_link_options(keyexchange2 PUBLIC -DNR_TASKLETS=1)
+
+add_executable(keyexchange3 stage3.c)
+target_link_libraries(keyexchange3 PUBLIC ime-rt)
+target_include_directories(keyexchange3 PUBLIC mbedtls/include/)
+target_link_libraries(keyexchange3 PUBLIC mbedcrypto)
+target_link_options(keyexchange3 PUBLIC -DNR_TASKLETS=1)
