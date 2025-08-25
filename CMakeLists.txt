@@ -3,9 +3,10 @@ project(ime C ASM)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(ime src/core/core.s src/core/core.h src/core/core_util.s src/core/core_crypt.c src/core/core_iram.s src/core/core_load.s src/core/core_mem.s src/core/core_scan.c src/core/core_thrd.s src/core/core_wram.s src/core/aead.c src/core/aead.h src/core/chacha.S src/core/poly.c src/core/poly.h src/core/poly.S)
+add_executable(ime src/core/core.s src/core/core.h src/core/core_util.s src/core/core_crypt.c src/core/core_iram.s src/core/core_load.S src/core/core_mem.s src/core/core_scan.c src/core/core_thrd.s src/core/core_wram.s src/core/aead.c src/core/aead.h src/core/chacha.S src/core/poly.c src/core/poly.h src/core/poly.S src/core/core_stats.c)
 target_compile_options(ime PRIVATE -Os)
 target_include_directories(ime PRIVATE src/common)
+target_compile_definitions(ime PRIVATE -DIME_REPORT_STATS=0)
 
 set_target_properties(ime PROPERTIES LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/ld/core.ld)
 target_link_options(ime PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/ld/core.ld)

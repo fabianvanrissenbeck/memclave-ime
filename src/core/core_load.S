@@ -16,6 +16,11 @@ ime_replace_sk:
     move r19, r2
     move r21, r0
 
+#if IME_REPORT_STATS == 1
+    move r22, __sys_stack_thread_0
+    call r23, ime_init_stats
+#endif
+
     call r23, ime_check_threads
     call r23, ime_wipe_user
 
@@ -25,6 +30,11 @@ ime_replace_sk:
      * of their WRAM while crossing to another subkernel must make sure that the first few sections
      * of WRAM are not used by them for anything persistent.
      */
+
+#if IME_REPORT_STATS == 1
+    move r22, __sys_stack_thread_0
+    call r23, ime_stats_here // unload time
+#endif
 
     move r0, r21
     call r23, ime_push_sk
@@ -39,9 +49,18 @@ ime_replace_sk:
     move r2, r19
 
     call r23, ime_decrypt_sk
+
+#if IME_REPORT_STATS == 1
+    call r23, ime_stats_here // decrypt time
+#endif
+
     move r0, r21
     move r22, __sys_stack_thread_0
     call r23, ime_scan_sk
+
+#if IME_REPORT_STATS == 1
+    call r23, ime_stats_here // scan time
+#endif
 
     // check stack canary
     move r22, __sys_stack_thread_0

@@ -1,5 +1,6 @@
 #include "aead.h"
 #include "poly.h"
+#include "core.h"
 
 #include <assert.h>
 
@@ -88,6 +89,10 @@ bool ime_decrypt_verify(ime_sk __mram_ptr* sk, uint32_t key[8]) {
             return false;
         }
     }
+
+#if IME_REPORT_STATS == 1
+    ime_stats_here(); // authentication time
+#endif
 
     for (size_t i = size_aad / 64; i < size / 64; ++i) {
         ime_chacha_blk(key, i - size_aad / 64 + 1, sk_hdr.iv[0], sk_hdr.iv[1], sk_hdr.iv[2], chacha_output);
