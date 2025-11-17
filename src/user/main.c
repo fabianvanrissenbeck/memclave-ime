@@ -1,35 +1,25 @@
-#include "poly.h"
+#include "aead.h"
+#include "ime.h"
 
-#include <mram.h>
-#include <string.h>
 #include <assert.h>
-#include <perfcounter.h>
 
-extern uint64_t __mram_noinit __ime_debug_out[8];
-
-const uint32_t input[] = {
-    0xb7b71824, 0x9a505483, 0xa00e6f7f, 0x64a0ff30,
-    0x00000000, 0x00000000, 0x00000000, 0x00000000,
-    0x00000010, 0x00000000, 0x00000000, 0x00000000,
-};
-
-const uint32_t key[] = {
-    0x8ba0d58a, 0xcc815f90, 0x27405081, 0x7194b24a,
-    0x37b633a8, 0xa50dfde3, 0xe2b8db08, 0x46a6d1fd,
-};
+uint32_t key[8] = { 0 };
+uint32_t buf[4] = { 0 };
+uint32_t tag[4];
+uint32_t iv[3] = { 0 };
 
 int main(void) {
-    poly_context ctx;
-    uint32_t tag[4];
+    ime_aead_enc(key, iv, sizeof(buf), buf, buf, tag, iv);
+    assert(ime_aead_dec(key, iv, tag, sizeof(buf), buf, buf));
 
-    poly_init(&ctx, key);
+    for (int i = 0; i < 4; ++i) {
+        __ime_debug_out[i] = buf[i];
+        __ime_debug_out[i + 4] = tag[i];
 
-    perfcounter_config(COUNT_CYCLES, true);
-    poly_feed_block(&ctx, &input[4]);
-    __ime_debug_out[0] = perfcounter_get();
-    poly_feed_block(&ctx, &input[8]);
-    poly_finalize(&ctx, &tag[0]);
+        if (i < 3) {
+            __ime_debug_out[i + 8] = iv[i];
+        }
+    }
 
-    assert(memcmp(&input[0], &tag[0], sizeof(tag)) == 0);
     asm("stop");
 }

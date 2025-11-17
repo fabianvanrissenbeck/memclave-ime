@@ -17,6 +17,6 @@ extern void __ime_replace_sk(void __mram_ptr* sk, const uint32_t tag[4], const u
 
 extern void __ime_get_counter(uint32_t out[4]);
 
-extern void __ime_chacha_blk(uint32_t key[8], uint32_t c, uint32_t iv_a, uint32_t iv_b, uint32_t iv_c, uint32_t out[16]);
+extern void __ime_chacha_blk(const uint32_t key[8], uint32_t c, uint32_t iv_a, uint32_t iv_b, uint32_t iv_c, uint32_t out[16]);
 
 #endif
