@@ -3,20 +3,28 @@ project(ime C ASM)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(ime src/core/core.s src/core/core.h src/core/core_util.s src/core/core_crypt.c src/core/core_iram.s src/core/core_load.s src/core/core_mem.s src/core/core_scan.c src/core/core_thrd.s src/core/core_wram.s)
+add_executable(ime src/core/core.s src/core/core.h src/core/core_util.s src/core/core_crypt.c src/core/core_iram.s src/core/core_load.S src/core/core_mem.s src/core/core_scan.c src/core/core_thrd.s src/core/core_wram.s src/core/aead.c src/core/aead.h src/core/chacha.S src/core/poly.c src/core/poly.h src/core/poly.S src/core/core_stats.c)
 target_compile_options(ime PRIVATE -Os)
 target_include_directories(ime PRIVATE src/common)
+target_compile_definitions(ime PRIVATE -DIME_REPORT_STATS=0)
 
 set_target_properties(ime PROPERTIES LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/ld/core.ld)
 target_link_options(ime PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/ld/core.ld)
 target_link_options(ime PUBLIC -nostartfiles)
 target_link_options(ime PUBLIC -DNR_TASKLETS=16)
+target_link_options(ime PUBLIC -DSTACK_SIZE_DEFAULT=8)
+target_link_options(ime PUBLIC -DSTACK_SIZE_TASKLET_0=4096)
 
 add_library(ime-rt src/ime-rt/boot.s src/ime-rt/ime.c src/ime-rt/ime.h)
 set_target_properties(ime-rt PROPERTIES LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/ld/user.ld)
 target_include_directories(ime-rt PUBLIC src/ime-rt)
 target_link_options(ime-rt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/ld/user.ld)
 target_link_options(ime-rt PUBLIC -nostartfiles)
+
+add_executable(user src/user/main.c src/user/poly.c src/user/poly.S src/user/poly.h)
+target_link_libraries(user PUBLIC ime-rt)
+target_link_options(user PUBLIC -DNR_TASKLETS=1)
+target_compile_definitions(user PUBLIC -DNR_TASKLETS=1)
 
 add_executable(add-example src/add/main.c)
 target_link_libraries(add-example PUBLIC ime-rt)
@@ -45,3 +53,26 @@ target_link_options(msg PUBLIC -DNR_TASKLETS=1)
 add_executable(multi-tasklet src/multi-tasklet/main.c)
 target_link_libraries(multi-tasklet PUBLIC ime-rt)
 target_link_options(multi-tasklet PUBLIC -DNR_TASKLETS=16)
+
+add_executable(sk-load-bench src/sk-load-bench/main.c src/core/poly.c src/core/poly.S)
+target_include_directories(sk-load-bench PRIVATE src/core)
+target_link_libraries(sk-load-bench PUBLIC ime-rt)
+target_link_options(sk-load-bench PUBLIC -DNR_TASKLETS=1)
+
+add_executable(dma-bench src/dma/main.c)
+target_link_libraries(dma-bench PUBLIC ime-rt)
+target_link_options(dma-bench PUBLIC -DNR_TASKLETS=1)
+target_compile_options(dma-bench PUBLIC -O3)
+
+add_executable(wram2-bench src/wram2/main.c)
+target_link_libraries(wram2-bench PUBLIC ime-rt)
+target_link_options(wram2-bench PUBLIC -DNR_TASKLETS=16)
+target_compile_options(wram2-bench PUBLIC -DNR_TASKLETS=16)
+target_compile_options(wram2-bench PUBLIC -O3)
+
+# add_library(mbedtls-local src/keyexchange/mbedtls/library/dhm.c src/keyexchange/mbedtls/include/mbedtls/dhm.h src/keyexchange/mbedtls/library/bignum.c src/keyexchange/mbedtls/library/bignum_core.c src/keyexchange/mbedtls/library/constant_time.c)
+# target_include_directories(mbedtls-local PUBLIC src/keyexchange/mbedtls/include)
+# target_compile_definitions(mbedtls-local PUBLIC MBEDTLS_CONFIG_FILE="${CMAKE_CURRENT_SOURCE_DIR}/src/keyexchange/mbedtls_config.h")
+# target_compile_options(mbedtls-local PRIVATE -Oz)
+
+add_subdirectory(src/keyexchange)

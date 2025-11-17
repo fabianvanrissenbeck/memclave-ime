@@ -4,16 +4,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define IME_MESSAGE_BUFFER ((ime_mram_msg __mram_ptr*) ((63 << 20) + (512 << 10)))
-
-/* MRAM Memory Layout
- *
- * 0-63 MiB (unused)
- * 63 MiB + 000 KiB - Messaging Subkernel
- * 63 MiB + 128 KiB - Key Exchange Subkernel
- * 63 MiB + 512 KiB - Message Buffer
- */
-
 typedef enum ime_mram_msg_type {
     IME_MRAM_MSG_NOP,
     IME_MRAM_MSG_WAITING,
@@ -43,28 +33,35 @@ typedef struct ime_mram_msg {
 _Static_assert(__builtin_offsetof(ime_mram_msg, wram.addr) == 4, "incorrect alignment");
 _Static_assert(__builtin_offsetof(ime_mram_msg, wram.value) == 8, "incorrect alignment");
 
+// __mram_noinit contains __attribute__((used)) which triggers a warning because
+// that attribute is useless in combination with extern
+#pragma GCC push
+#pragma GCC diagnostic ignored "-Wignored-attributes"
+extern ime_mram_msg __mram_noinit __ime_msg_buf;
+#pragma GCC pop
+
 int main(void) {
-    IME_MESSAGE_BUFFER->type = IME_MRAM_MSG_WAITING;
+    __ime_msg_buf.type = IME_MRAM_MSG_WAITING;
     __ime_wait_for_host();
 
-    switch (IME_MESSAGE_BUFFER->type) {
+    switch (__ime_msg_buf.type) {
     case IME_MRAM_MSG_PING:
-        IME_MESSAGE_BUFFER->type = IME_MRAM_MSG_PONG;
+        __ime_msg_buf.type = IME_MRAM_MSG_PONG;
         break;
 
     case IME_MRAM_MSG_READ_WRAM:
-        IME_MESSAGE_BUFFER->wram.value = *((uint32_t*) IME_MESSAGE_BUFFER->wram.addr);
-        IME_MESSAGE_BUFFER->type = IME_MRAM_MSG_NOP;
+        __ime_msg_buf.wram.value = *((uint32_t*) __ime_msg_buf.wram.addr);
+        __ime_msg_buf.type = IME_MRAM_MSG_NOP;
         break;
 
     case IME_MRAM_MSG_WRITE_WRAM:
-        *((uint32_t*) IME_MESSAGE_BUFFER->wram.addr) = IME_MESSAGE_BUFFER->wram.value;
-        IME_MESSAGE_BUFFER->type = IME_MRAM_MSG_NOP;
+        *((uint32_t*) __ime_msg_buf.wram.addr) = __ime_msg_buf.wram.value;
+        __ime_msg_buf.type = IME_MRAM_MSG_NOP;
         break;
 
     case IME_MRAM_MSG_LOAD_SK:
-        IME_MESSAGE_BUFFER->type = IME_MRAM_MSG_NOP;
-        __ime_replace_sk((void __mram_ptr*) IME_MESSAGE_BUFFER->load.ptr, NULL, NULL, 1);
+        __ime_msg_buf.type = IME_MRAM_MSG_NOP;
+        __ime_replace_sk((void __mram_ptr*) __ime_msg_buf.load.ptr, NULL, NULL);
         break;
 
     default:

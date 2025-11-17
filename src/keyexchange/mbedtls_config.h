@@ -1,3 +1,12 @@
+#define MBEDTLS_BIGNUM_C
+#define MBEDTLS_PLATFORM_C
+#define MBEDTLS_DHM_C
+#define MBEDTLS_SHA256_C
+// #define MBEDTLS_NO_UDBL_DIVISION
+
+// #define MBEDTLS_PLATFORM_MEMORY 0
+
+#if 0
 /**
  * \file mbedtls_config.h
  *
@@ -224,7 +233,7 @@
  * Uncomment to prevent default assignment of standard functions in the
  * platform layer.
  */
-//#define MBEDTLS_PLATFORM_NO_STD_FUNCTIONS
+#define MBEDTLS_PLATFORM_NO_STD_FUNCTIONS
 
 /**
  * \def MBEDTLS_PLATFORM_EXIT_ALT
@@ -4364,3 +4373,5 @@
 //#define MBEDTLS_X509_MAX_FILE_PATH_LEN     512 /**< Maximum length of a path/filename string in bytes including the null terminator character ('\0'). */
 
 /** \} name SECTION: Module configuration options */
+
+#endif

@@ -1,0 +1,103 @@
+#include "aead.h"
+#include "poly.h"
+#include "core.h"
+
+#include <assert.h>
+
+#define OUTPUT ((uint32_t __mram_ptr*) ((64 << 20) - 64))
+
+extern void ime_chacha_blk(uint32_t key[8], uint32_t c, uint32_t iv_a, uint32_t iv_b, uint32_t iv_c, uint32_t out[16]);
+
+static void fetch_sk_chunk(const ime_sk __mram_ptr* sk, size_t chunk, uint32_t out[4]) {
+    const uint32_t __mram_ptr* sk_raw = (const uint32_t __mram_ptr*) sk;
+    mram_read(&sk_raw[chunk * 4], out, 16);
+}
+
+static void xor_sk_chunk(const ime_sk __mram_ptr* sk, size_t chunk, const uint32_t data[16]) {
+    uint32_t __mram_ptr* sk_raw = (uint32_t __mram_ptr*) sk;
+    uint32_t buf[16];
+
+    mram_read(&sk_raw[chunk * 16], buf, sizeof(buf));
+
+    for (int i = 0; i < 16; ++i) {
+        buf[i] ^= data[i];
+    }
+
+    mram_write(buf, &sk_raw[chunk * 16], sizeof(buf));
+}
+
+bool ime_decrypt_verify(ime_sk __mram_ptr* sk, uint32_t key[8]) {
+    poly_context ctx;
+    uint32_t tag[4];
+    uint32_t chacha_output[16];
+    ime_sk sk_hdr;
+
+    mram_read(sk, &sk_hdr, sizeof(sk_hdr));
+
+#if 0
+#if 0
+    uint32_t key[8];
+
+    key[0] = 0x83828180;
+    key[1] = 0x87868584;
+    key[2] = 0x8b8a8988;
+    key[3] = 0x8f8e8d8c;
+    key[4] = 0x93929190;
+    key[5] = 0x97969594;
+    key[6] = 0x9b9a9998;
+    key[7] = 0x9f9e9d9c;
+#else
+    uint32_t* key = NULL;
+#endif
+#endif
+
+    ime_chacha_blk(key, 0, sk_hdr.iv[0], sk_hdr.iv[1], sk_hdr.iv[2], chacha_output);
+    poly_init(&ctx, chacha_output);
+
+    // feed header and AEAD portion of the subkernel
+
+    poly_feed_block(&ctx, (uint32_t[4]) { 0xA5A5A5A5 });
+    poly_feed_block(&ctx, (uint32_t[4]) { 0 });
+
+    size_t size_aad = sk_hdr.size_aad;
+    size_t size = sk_hdr.size;
+
+    for (size_t i = 2; i < size_aad / 16; ++i) {
+        uint32_t buf[4];
+
+        fetch_sk_chunk(sk, i, buf);
+        poly_feed_block(&ctx, buf);
+    }
+
+    // subkernel components are 16 byte aligned, no padding is required
+    // feed ciphertext portion of the subkernel
+
+    for (size_t i = size_aad / 16; i < size / 16; ++i) {
+        uint32_t buf[4];
+
+        fetch_sk_chunk(sk, i, buf);
+        poly_feed_block(&ctx, buf);
+    }
+
+    // feed length to finalize aead computation
+    poly_feed_block(&ctx, (uint32_t[4]) { size_aad, 0x0, size - size_aad, 0x0 });
+    poly_finalize(&ctx, tag);
+
+#pragma unroll
+    for (int i = 0; i < 4; ++i) {
+        if (tag[i] != sk_hdr.tag[i]) {
+            return false;
+        }
+    }
+
+#if IME_REPORT_STATS == 1
+    ime_stats_here(); // authentication time
+#endif
+
+    for (size_t i = size_aad / 64; i < size / 64; ++i) {
+        ime_chacha_blk(key, i - size_aad / 64 + 1, sk_hdr.iv[0], sk_hdr.iv[1], sk_hdr.iv[2], chacha_output);
+        xor_sk_chunk(sk, i, chacha_output);
+    }
+
+    return true;
+}
