@@ -4,6 +4,9 @@
 .globl __ime_replace_sk
 .globl __ime_get_counter
 .globl __ime_chacha_blk
+.globl poly_init
+.globl poly_feed_block
+.globl poly_finalize
 
 __bootstrap:
     sub zero, NR_TASKLETS-1, id, mi, stop_unused_tasklet
@@ -37,3 +40,12 @@ __ime_get_counter:
 
 __ime_chacha_blk:
     jump 0x4
+
+poly_init:
+    jump 0x5
+
+poly_feed_block:
+    jump 0x6
+
+poly_finalize:
+    jump 0x7

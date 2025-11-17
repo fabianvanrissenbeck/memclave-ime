@@ -23,6 +23,7 @@ int main(void) {
     uint32_t tag[4];
 
     poly_init(&ctx, key);
+
     perfcounter_config(COUNT_CYCLES, true);
     poly_feed_block(&ctx, &input[4]);
     __ime_debug_out[0] = perfcounter_get();
