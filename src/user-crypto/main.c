@@ -10,7 +10,7 @@ uint32_t iv[3] = { 0x765ce0f6, 0x213c6cae, 0x6b290646 };
 uint32_t tag[4];
 uint32_t target_tag[4] = { 0x880f11f4, 0x3fb42706, 0x06d91677, 0xcf90a314 };
 
-uint32_t buf[128] = {
+__attribute__((aligned(8))) uint32_t buf[128] = {
     0xd6a3fa7c, 0x968f2a09, 0xca412f52, 0x7455bcd3, 0x5d6ae523, 0x57f7dd02, 0x29c0f00b, 0x0e5cdc81,
     0x81b0246d, 0x8a2bde70, 0xe939b6e2, 0xae1fe967, 0xb1c3ae83, 0x0d266115, 0x8aa95f3d, 0x6423ad9f,
     0x300d7b04, 0x9fbc5950, 0x0f64a22e, 0xce4c046b, 0x288070fd, 0xc819ab9d, 0x49435d80, 0xc36ad0cf,
@@ -29,13 +29,21 @@ uint32_t buf[128] = {
     0x66808b6b, 0x21daf620, 0x3945a637, 0x8b40b7fe, 0x580c35ef, 0xafa42fe5, 0x3be35716, 0x0b3c7253
 };
 
+uint32_t __mram buf_mram[128];
+
 int main(void) {
+    mram_write(buf, &buf_mram[0], sizeof(buf));
+
     ime_aead_enc(key, iv, sizeof(buf), buf, buf, tag, iv);
     assert(memcmp(tag, target_tag, sizeof(target_tag)) == 0);
     assert(ime_aead_dec(key, iv, tag, sizeof(buf), buf, buf));
 
+    ime_aead_enc_mram(key, iv, sizeof(buf_mram), buf_mram, buf_mram, tag, iv);
+    assert(memcmp(tag, target_tag, sizeof(target_tag)) == 0);
+    assert(ime_aead_dec_mram(key, iv, tag, sizeof(buf_mram), buf_mram, buf_mram));
+
     for (int i = 0; i < 4; ++i) {
-        __ime_debug_out[i] = buf[i];
+        __ime_debug_out[i] = buf_mram[i];
         __ime_debug_out[i + 4] = tag[i];
 
         if (i < 3) {

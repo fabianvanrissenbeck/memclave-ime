@@ -1,6 +1,7 @@
 #ifndef AEAD_H
 #define AEAD_H
 
+#include <mram.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -31,5 +32,13 @@ void ime_aead_enc(const uint32_t* key, const uint32_t* iv,
  */
 bool ime_aead_dec(const uint32_t* key, const uint32_t* iv, const uint32_t* tag,
                   size_t len, const uint32_t* buf, uint32_t* out_buf);
+
+void ime_aead_enc_mram(const uint32_t* key, const uint32_t* iv,
+    size_t len, const uint32_t __mram_ptr* buf, uint32_t __mram_ptr* out_buf,
+    uint32_t* out_tag, uint32_t* out_iv);
+
+bool ime_aead_dec_mram(const uint32_t* key, const uint32_t* iv, const uint32_t* tag,
+                       size_t len, const uint32_t __mram_ptr* buf, uint32_t __mram_ptr* out_buf);
+
 
 #endif
