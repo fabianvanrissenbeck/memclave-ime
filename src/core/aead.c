@@ -1,5 +1,5 @@
 #include "aead.h"
-#include "poly.h"
+#include "../poly/poly.h"
 #include "core.h"
 
 #include <assert.h>

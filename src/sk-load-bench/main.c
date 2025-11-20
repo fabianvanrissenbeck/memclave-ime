@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <perfcounter.h>
 
-#include "../core/poly.h"
+#include "../poly/poly.h"
 
 #define SK_ADDR ((void __mram_ptr*) (63 << 20))
 #define OUTPUT ((uint64_t __mram_ptr*) ((64 << 20) - 64))

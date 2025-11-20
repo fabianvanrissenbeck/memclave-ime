@@ -7,6 +7,9 @@ __bootstrap:
     jump zero, core_on_signal
     jump zero, core_on_counter
     jump zero, core_on_chacha
+    jump zero, poly_init
+    jump zero, poly_feed_block
+    jump zero, poly_finalize
 
 core_on_boot:
     xor zero, id, 23, z, core_on_ctr_thread
