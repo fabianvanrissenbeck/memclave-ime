@@ -1,5 +1,6 @@
 PROVIDE(__ime_wram_start = 0x00000);
 PROVIDE(__ime_wram_end = 0x10000);
+PROVIDE(NR_TASKLETS = 16);
 
 SECTIONS
 {

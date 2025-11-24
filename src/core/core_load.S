@@ -85,15 +85,15 @@ ime_replace_sk:
     add.u d18, zero, 0x0, z
     add.u d22, zero, 0x0, z
 
-    move r19, 0x0
-    move r20, 4096 * 8
-    move r21, 64 * 1024 * 1024
-
     move r0, NR_TASKLETS
 resume_loop:
     sub r0, r0, 1, z, resume_end
     resume r0, 0
     jump resume_loop
 resume_end:
+
+    move r19, 0x0
+    move r20, 4096 * 8
+    move r21, 64 * 1024 * 1024
 
     jump zero, __ime_user_start
