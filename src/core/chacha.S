@@ -60,6 +60,7 @@ ime_chacha_thread:
     lw r13, r0, 0x08
     lw r12, r0, 0x04
 
+#if 0
     // dummy load instead of using immutable key registers for testing
     move r4, 0x83828180
     move r5, 0x87868584
@@ -69,8 +70,7 @@ ime_chacha_thread:
     move r9, 0x97969594
     move r10, 0x9b9a9998
     move r11, 0x9f9e9d9c
-
-/*
+#else
     // load key from immutable key register r16 - r23 (inclusive)
     move r4, r16
     move r5, r17
@@ -80,7 +80,7 @@ ime_chacha_thread:
     move r9, r21
     move r10, r22
     move r11, r23
-*/
+#endif
 
     // use run bits as loop counter because no other registers are free
 
@@ -163,6 +163,7 @@ chacha_loop_lt_8:
     lw r1, r0, 0x10
     add r15, r15, r1
 
+#if 0
     // dummy add instead of code below
 
     add r4, r4, 0x83828180
@@ -174,7 +175,7 @@ chacha_loop_lt_8:
     add r10, r10, 0x9b9a9998
     add r11, r11, 0x9f9e9d9c
 
-/*
+#else
     // add from immutable registers
     add r4, r4, r16
     add r5, r5, r17
@@ -184,7 +185,7 @@ chacha_loop_lt_8:
     add r9, r9, r21
     add r10, r10, r22
     add r11, r11, r23
-*/
+#endif
 
     lw r1, r0, 20
 

@@ -71,6 +71,9 @@ target_link_options(wram2-bench PUBLIC -DNR_TASKLETS=16)
 target_compile_options(wram2-bench PUBLIC -DNR_TASKLETS=16)
 target_compile_options(wram2-bench PUBLIC -O3)
 
+add_executable(stop src/stop/main.c)
+target_link_libraries(stop PUBLIC ime-rt)
+
 # add_library(mbedtls-local src/keyexchange/mbedtls/library/dhm.c src/keyexchange/mbedtls/include/mbedtls/dhm.h src/keyexchange/mbedtls/library/bignum.c src/keyexchange/mbedtls/library/bignum_core.c src/keyexchange/mbedtls/library/constant_time.c)
 # target_include_directories(mbedtls-local PUBLIC src/keyexchange/mbedtls/include)
 # target_compile_definitions(mbedtls-local PUBLIC MBEDTLS_CONFIG_FILE="${CMAKE_CURRENT_SOURCE_DIR}/src/keyexchange/mbedtls_config.h")
