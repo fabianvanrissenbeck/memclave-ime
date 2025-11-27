@@ -8,10 +8,13 @@ struct ime_xchg_io {
         struct {
             uint32_t client_pk_in[64];
             uint32_t xchg_cnt_in[4];
+            // use OTP for now - AEAD would be cleaner though
+            uint32_t key_enc_in[12];
         } in;
         struct {
             uint32_t xchg_shared_out[64];
             uint32_t xchg_cnt_out[4];
+            uint32_t key_enc_out[12];
         } out;
     };
 };

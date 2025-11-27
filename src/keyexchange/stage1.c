@@ -9,6 +9,7 @@ struct ime_xchg_io g_xchg_io;
 volatile uint32_t __mram_noinit client_pubkey_raw[64];
 volatile uint32_t __mram_noinit dpu_pubkey_raw[64];
 volatile uint32_t __mram_noinit ime_xchg_counter[4];
+volatile uint32_t __mram_noinit ime_key_in[12];
 
 static uint32_t dpu_pubkey_wram[64] = {
     0x37a59d0c, 0x4c654ae0, 0x54204efc, 0x90130854,
@@ -49,6 +50,10 @@ int main(void) {
 
     for (int i = 0; i < 64; ++i) {
         g_xchg_io.in.client_pk_in[i] = client_pubkey_raw[i];
+    }
+
+    for (int i = 0; i < 12; ++i) {
+        g_xchg_io.in.key_enc_in[i] = ime_key_in[i];
     }
 
     __ime_replace_sk(__ime_xchg_sk_2, NULL, NULL);
