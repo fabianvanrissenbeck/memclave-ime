@@ -31,6 +31,7 @@ target_compile_definitions(user-crypto PUBLIC -DNR_TASKLETS=1)
 add_executable(add-example src/add/main.c)
 target_link_libraries(add-example PUBLIC ime-rt)
 target_link_options(add-example PUBLIC -DNR_TASKLETS=1)
+target_compile_definitions(add-example PUBLIC -DNR_TASKLETS=1)
 
 add_executable(mbench-example src/mbench/main.c)
 target_link_libraries(mbench-example PUBLIC ime-rt)

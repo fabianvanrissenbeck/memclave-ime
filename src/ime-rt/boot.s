@@ -17,20 +17,13 @@ __bootstrap:
 
     call r23, __ime_stop_tasklet
 
-    sw zero, g_load_prop, 0x0
-    sw zero, g_load_prop + 4, 0x0
-    sw zero, g_load_prop + 8, 0x0
-    sw zero, g_load_prop + 12, 0x0
+    move r0, g_load_prop
+    move r1, 12
 
-    sw zero, g_load_prop + 16, 0x0
-    sw zero, g_load_prop + 20, 0x0
-    sw zero, g_load_prop + 24, 0x0
-    sw zero, g_load_prop + 28, 0x0
-
-    sw zero, g_load_prop + 32, 0x0
-    sw zero, g_load_prop + 36, 0x0
-    sw zero, g_load_prop + 40, 0x0
-    sw zero, g_load_prop + 44, 0x0
+wipe_key_loop:
+    sw r0, 0x0, 0x0
+    add r0, r0, 0x4
+    add r1, r1, -0x1, nz, wipe_key_loop
 
     move r0, __ime_msg_sk
     move r1, 0x0
