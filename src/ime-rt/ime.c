@@ -1,8 +1,12 @@
+#include "ime.h"
+
 #include <defs.h>
 #include <mutex.h>
 
 MUTEX_INIT(__ime_tasklet_lock);
-static uint32_t __ime_tasklet_count = NR_TASKLETS;
+static volatile uint32_t __ime_tasklet_count = NR_TASKLETS;
+
+__attribute__((section(".data.persist.last"))) ime_load_params g_load_prop = { 0 };
 
 void __ime_stop_tasklet(void) {
     if (me() == 0) {

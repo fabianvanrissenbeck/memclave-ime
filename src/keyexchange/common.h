@@ -21,6 +21,12 @@ struct ime_xchg_io {
 
 #pragma GCC push
 #pragma GCC diagnostic ignored "-Wignored-attributes"
+extern uint64_t __mram_noinit __ime_msg_sk[];
+#pragma GCC pop
+
+
+#pragma GCC push
+#pragma GCC diagnostic ignored "-Wignored-attributes"
 extern uint64_t __mram_noinit __ime_xchg_sk_2[];
 #pragma GCC pop
 

@@ -3,6 +3,7 @@ SECTIONS
   .data.persist 0xffc0 - SIZEOF(.data.persist) (NOLOAD) : {
     __ime_persist_start = .;
     *(.data.persist)
+    *(.data.persist.last)
     __ime_persist_end = .;
   }
 

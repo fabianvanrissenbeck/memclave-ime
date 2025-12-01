@@ -6,6 +6,19 @@
 
 #define __ime_persist __attribute__((section(".data.persist")))
 
+/**
+ * Properties stored at the end of the persistent data storage.
+ * These are erased by the rt library when returning from main.
+ * They are not erased, if subkernels call __ime_replace_sk
+ * directly.
+ */
+typedef struct {
+    uint32_t tag[4];
+    uint32_t key[8];
+} ime_load_params;
+
+extern __attribute__((section(".data.persist.last"))) ime_load_params g_load_prop;
+
 #pragma GCC push
 #pragma GCC diagnostic ignored "-Wignored-attributes"
 extern uint32_t __mram_noinit __ime_debug_out[16];
