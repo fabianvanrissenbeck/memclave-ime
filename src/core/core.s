@@ -69,11 +69,22 @@ core_on_counter_loop:
     jump r23
 
 core_on_ctr_thread:
-    add r0, r0, 0x1
+    add r0, r0, 0x10000
     addc r1, r1, 0x0
     addc r2, r2, 0x0
     addc r3, r3, 0x0
     addc zero, zero, 0x0, nz, ime_sec_fault
+
+    // r0 is treated in a special way. Multiple DPUs may use
+    // the same encryption and decryption key, so each DPU must use
+    // different IV values to not expose the XOR of the plaintext.
+    // r0 has the following structure:
+    // r0 = <16-bit counter> | <15-bit DPU ID> | <1 bit>
+    //
+    // The lowest bit is used, so that the guest can simply use IVs without this bit set.
+    // This will prevent any accidental IV reuses.
+    // The DPU ID ensures that each DPU has a unique counter.
+    // The higher bits are normal counters.
 
     move r4, __ime_threadio_start
 
