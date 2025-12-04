@@ -2,7 +2,10 @@ FROM ubuntu:22.04
 
 RUN apt update && \
     apt install -y build-essential git cmake ninja-build python3-dev && \
-    git clone --depth=1 https://github.com/upmem/llvm-project.git
+    git clone --depth=1 https://github.com/deinernstjetzt/llvm-project.git && \
+    cd llvm-project && \
+    git reset --hard 02a1f3ffa0f15d3c21b60ffc12196131c3e3cffa && \
+    cd ..
 
 RUN sed -i -f - llvm-project/llvm/lib/Target/DPU/DPURegisterInfo.cpp << EOF
 /reserved.set(DPU::D22);/i \ \ reserved.set(DPU::D20);\n\ \ reserved.set(DPU::R20);\n\ \ reserved.set(DPU::R21);
@@ -40,10 +43,18 @@ RUN apt-get update && \
         gdb \
         default-jdk \
         libudev-dev \
-	python3-pip \
+        python3-pip \
+        git \
+        ssh \
         xxd
 
-RUN wget http://sdk-releases.upmem.com/2025.1.0/ubuntu_22.04/upmem_2025.1.0_amd64.deb && \
+# Unfortunately, UPMEM took down their download site. Use archive.org download
+# as a fallback for now.
+# RUN wget http://sdk-releases.upmem.com/2025.1.0/ubuntu_22.04/upmem_2025.1.0_amd64.deb && \
+#    apt-get update && \
+#    DEBIAN_FRONTEND=noninteractive apt-get install -y ./upmem_2025.1.0_amd64.deb
+
+RUN wget https://web.archive.org/web/20250527142934if_/http://sdk-releases.upmem.com/2025.1.0/ubuntu_22.04/upmem_2025.1.0_amd64.deb && \
     apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y ./upmem_2025.1.0_amd64.deb
 
@@ -54,5 +65,10 @@ COPY ./tools/dpurun.c /src/dpurun.c
 RUN clang `pkg-config --cflags dpu` -o /usr/bin/dpurun /src/dpurun.c `pkg-config --libs dpu`
 
 COPY --from=0 /llvm-project/build/bin/clang-12 /usr/bin/clang-12
+
+RUN useradd -m -U -u 1000 pim
+USER 1000:1000
+RUN mkdir -p ~/.ssh && ssh-keyscan projects.cispa.saarland > ~/.ssh/known_hosts
+WORKDIR /home/pim
 
 CMD bash
