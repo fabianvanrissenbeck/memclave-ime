@@ -81,4 +81,4 @@ target_link_libraries(stop PUBLIC ime-rt)
 # target_compile_definitions(mbedtls-local PUBLIC MBEDTLS_CONFIG_FILE="${CMAKE_CURRENT_SOURCE_DIR}/src/keyexchange/mbedtls_config.h")
 # target_compile_options(mbedtls-local PRIVATE -Oz)
 
-add_subdirectory(src/keyexchange)
+add_subdirectory(src/keyexchange ${CMAKE_CURRENT_BINARY_DIR}/keyexchange)
