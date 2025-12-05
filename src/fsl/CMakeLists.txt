@@ -13,41 +13,41 @@ add_compile_options(-Os)
 add_compile_options(-fno-inline)
 
 set(MBEDTLS_TARGET_PREFIX "fsl-")
-add_subdirectory(mbedtls)
+set(ENABLE_TESTING OFF)
+add_subdirectory(mbedtls EXCLUDE_FROM_ALL)
 
 find_program(PYTHON NAMES python3 python REQUIRED)
 find_program(OBJCOPY NAMES llvm-objcopy REQUIRED)
 
 function(add_subkernel_target OUT SKNAME SUBPROJECT)
-    set(INFILE ${CMAKE_CURRENT_BINARY_DIR}/../${SUBPROJECT}/${SKNAME})
-
     add_custom_command(
             OUTPUT ${OUT}
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
             COMMAND ${PYTHON}
-            ARGS sk.py ${INFILE} ${OUT} auth
-            MAIN_DEPENDENCY ${INFILE}
+            ARGS sk.py $<TARGET_FILE:${SKNAME}> ${OUT} auth
+            DEPENDS ${SKNAME}
     )
 
     get_filename_component(TARGET_PREFIX ${OUT} NAME_WLE)
     add_custom_target(${TARGET_PREFIX}-sk DEPENDS ${OUT})
     add_dependencies(${TARGET_PREFIX}-sk ${SKNAME})
+    set_source_files_properties(${OUT} PROPERTIES GENERATED TRUE)
     set_target_properties(${TARGET_PREFIX}-sk PROPERTIES LOCATION ${OUT})
 endfunction()
 
 function(extract_iram_target TARGET OUT)
-    set(IN ${CMAKE_CURRENT_BINARY_DIR}/../ime)
     add_custom_command(
             OUTPUT ${OUT}
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
             COMMAND ${OBJCOPY}
-            ARGS --only-section .text -O binary ${IN} ${OUT}
+            ARGS --only-section .text -O binary $<TARGET_FILE:ime> ${OUT}
             VERBATIM
-            MAIN_DEPENDENCY ${IN}
+            DEPENDS ime
     )
 
     add_custom_target(${TARGET} DEPENDS ${OUT})
     set_target_properties(${TARGET} PROPERTIES LOCATION ${OUT})
+    set_source_files_properties(${OUT} PROPERTIES GENERATED TRUE)
     add_dependencies(${TARGET} ime)
 endfunction()
 
