@@ -1,3 +1,8 @@
 [submodule "mbedtls"]
 	path = src/keyexchange/mbedtls
 	url = https://github.com/Mbed-TLS/mbedtls.git
+	branch = 6fb5120fde4ab889bea402f5ab230c720b0a3b9a
+[submodule "src/fsl/mbedtls"]
+	path = src/fsl/mbedtls
+	url = https://github.com/Mbed-TLS/mbedtls.git
+	branch = 6fb5120fde4ab889bea402f5ab230c720b0a3b9a
