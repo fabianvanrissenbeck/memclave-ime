@@ -11,7 +11,7 @@
 #include <barrier.h>
 #include <assert.h>
 
-#define ADD 1
+#define SUB 1
 #define SK_LOG_ENABLED 1
 #define TASKLETS 16
 #include "support/common.h"

@@ -340,7 +340,7 @@ for (unsigned i = start_row; i < start_row + rows_per_tasklet; i += 2) {
         // Layout: 8×8B = 64B
         // [0]=magic, [1]=whole_kernel_cycles_max, [2]=s, [3]=e, [4]=(tasklets<<32)|layers,
         // [5]=0 (spare), [6]=0 (spare), [7]=1 (done)
-        sk_log_write_idx(0, 0xbbbbULL);                    // "SKLOGV1"
+        sk_log_write_idx(0, 0xffffULL);                    // "SKLOGV1"
         sk_log_write_idx(1, mx);
         sk_log_write_idx(2, (uint64_t)s);
         //sk_log_write_idx(2, (uint64_t)DPU_INPUT_ARGUMENTS.dummy);

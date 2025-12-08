@@ -6,8 +6,8 @@
 #include <mram.h>
 #include <stdint.h>
 
-#define SK_LOG_ENABLED 1
 // To disable all logging (zero overhead), simply omit -DSK_LOG_ENABLED
+#define SK_LOG_ENABLED
 #ifdef SK_LOG_ENABLED
 
 /// total MRAM per DPU
@@ -51,3 +51,4 @@ static inline void sk_log_write_idx(uint32_t idx, uint64_t val) {
 #endif // SK_LOG_ENABLED
 
 #endif // SK_LOG_H
+

@@ -17,6 +17,8 @@
 #include "support/common.h"
 #include "support/log.h"
 
+__host uint64_t tl_cycles[TASKLETS];
+
 // Shared state in WRAM
 __attribute__((aligned(8)))
 static volatile struct {
@@ -65,21 +67,27 @@ int main1(void) {
     return 0;
 }
 
+volatile uint32_t t_spin1 = 0xbb;
+volatile uint32_t t_spin0 = 0xaa;
 // main
 int main() {
 
     if(me() == 0) {
 	mybarrier_init();
         mem_reset(); // Reset the heap
+    	sk_log_init();
+	perfcounter_config(COUNT_CYCLES, true);
     }
     for (int i = 0; i<100; i++);
-    mybarrier_wait();
-    sk_log_init();
+    //mybarrier_wait();
 
     // Load parameters
     uint32_t params_m = (uint32_t) DPU_MRAM_HEAP_POINTER;
     struct DPUParams* params_w = (struct DPUParams*) mem_alloc(ROUND_UP_TO_MULTIPLE_OF_8(sizeof(struct DPUParams)));
     mram_read((__mram_ptr void const*)ARG_OFFSET, params_w, ROUND_UP_TO_MULTIPLE_OF_8(sizeof(struct DPUParams)));
+    mybarrier_wait();
+    uint32_t s = perfcounter_get();
+
 
     // Extract parameters
     uint32_t numGlobalNodes = params_w->numNodes;
@@ -100,12 +108,12 @@ int main() {
     const uint32_t priv_stride_bytes = globalWords * sizeof(uint64_t);
     const uint32_t next_priv_base = nextFrontierPriv_m + me() * priv_stride_bytes;
 
-    sk_log_write_idx(0, numNodes);
+    /*sk_log_write_idx(0, numNodes);
     sk_log_write_idx(1, numNodes);
     sk_log_write_idx(2, numGlobalNodes);
     sk_log_write_idx(3, startNodeIdx);
     sk_log_write_idx(4, nodePtrsOffset);
-    sk_log_write_idx(5, level);
+    sk_log_write_idx(5, level);*/
 
     if(numNodes > 0) {
 
@@ -122,9 +130,9 @@ int main() {
         // Allocate WRAM cache for each tasklet to use throughout
         uint64_t* cache_w = mem_alloc(2 * sizeof(uint64_t));
 	// Zero this tasklet's private next-frontier shard
-        for (uint32_t w = 0; w < globalWords; ++w) {
-            store8B(0, next_priv_base, w, cache_w);
-        }
+        //for (uint32_t w = 0; w < globalWords; ++w) {
+        //    store8B(0, next_priv_base, w, cache_w);
+        //}
 
         uint32_t firstPtr = load4B(nodePtrs_m, 0, cache_w);
 
@@ -211,12 +219,35 @@ int main() {
             // OR all TASKLETS' shards at word w
             for (uint32_t t = 0; t < TASKLETS; ++t) {
                 const uint32_t base_t = nextFrontierPriv_m + t * priv_stride_bytes;
-                acc |= load8B(base_t, w, cache_w);
+		uint64_t v = load8B(base_t, w, cache_w);
+                acc |= v;
+		if (v) store8B(0, base_t, w, cache_w);
             }
             store8B(acc, nextFrontier_m, w, cache_w);
         }
 
     }
+
+#if 1
+        mybarrier_wait();
+        uint32_t e = perfcounter_get();
+        uint64_t my = e - s;
+        tl_cycles[me()] = my;
+        mybarrier_wait();
+    if (me() == 0) {
+	uint64_t mx = 0;
+	for (int t = 0; t < TASKLETS; t++)
+	    if (tl_cycles[t] > mx) mx = tl_cycles[t];
+
+        // Layout: 8×8B = 64B
+        // [0]=magic, [1]=whole_kernel_cycles_max, [2]=s, [3]=e, [4]=(tasklets<<32)|layers,
+        // [5]=0 (spare), [6]=0 (spare), [7]=1 (done)
+        sk_log_write_idx(0, 0xffffULL);                    // "SKLOGV1"
+        sk_log_write_idx(1, mx);
+        sk_log_write_idx(2, (uint64_t)s);
+        sk_log_write_idx(7, 1ULL);
+    }
+#endif
 
     return 0;
 }

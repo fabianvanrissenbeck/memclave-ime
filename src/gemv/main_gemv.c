@@ -104,7 +104,6 @@ int main() {
 
 	// Barrier
 	//barrier_wait(&my_barrier);
-        mybarrier_wait();
 
 	int32_t n_size = args.n_size;
 	int32_t n_size_pad = args.n_size_pad;
@@ -203,10 +202,10 @@ int main() {
 
 				// Compute GEMV
 				gemv(cache_C, cache_A, cache_B, pos);
-				//uint64_t sum = 0;
-    				//for (int i = 0; i < args.n_size; ++i) {
-				//        sum += (uint64_t)cache_A[i] * cache_B[i];
-    				//}
+				uint64_t sum = 0;
+    				for (int i = 0; i < args.n_size; ++i) {
+				        sum += (uint64_t)cache_A[i] * cache_B[i];
+    				}
 
 				// Update memory addresses
 				mram_temp_addr_A += BLOCK_SIZE;
