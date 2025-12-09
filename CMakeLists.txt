@@ -12,6 +12,7 @@ set_target_properties(ime PROPERTIES LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/ld
 target_link_options(ime PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/ld/core.ld)
 target_link_options(ime PUBLIC -nostartfiles)
 target_link_options(ime PUBLIC -DNR_TASKLETS=16)
+# this option is ignored in boot.s
 target_link_options(ime PUBLIC -DSTACK_SIZE_DEFAULT=8)
 target_link_options(ime PUBLIC -DSTACK_SIZE_TASKLET_0=4096)
 target_compile_definitions(ime PUBLIC -DNR_TASKLETS=16)
@@ -75,6 +76,11 @@ target_compile_options(wram2-bench PUBLIC -O3)
 
 add_executable(stop src/stop/main.c)
 target_link_libraries(stop PUBLIC ime-rt)
+
+add_executable(crypto-bench src/crypto-bench/main.c)
+target_link_libraries(crypto-bench PUBLIC ime-rt)
+target_link_options(crypto-bench PUBLIC -DNR_TASKLETS=1)
+target_compile_definitions(crypto-bench PUBLIC -DNR_TASKLETS=1)
 
 # add_library(mbedtls-local src/keyexchange/mbedtls/library/dhm.c src/keyexchange/mbedtls/include/mbedtls/dhm.h src/keyexchange/mbedtls/library/bignum.c src/keyexchange/mbedtls/library/bignum_core.c src/keyexchange/mbedtls/library/constant_time.c)
 # target_include_directories(mbedtls-local PUBLIC src/keyexchange/mbedtls/include)

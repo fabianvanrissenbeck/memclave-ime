@@ -1,3 +1,7 @@
+/**
+ * test making sure that subkernel crypto functionality works
+ */
+
 #include "aead.h"
 #include "ime.h"
 
