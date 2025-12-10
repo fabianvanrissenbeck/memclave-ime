@@ -89,44 +89,4 @@ bool ime_barrier_wait(volatile ime_barrier* bar) {
     ime_enter_barrier(bar);
     ime_wait_barrier(bar);
     return ime_leave_barrier(bar);
-
-#if 0
-    unsigned id = me();
-    bool is_done = false;
-
-    while (!is_done) {
-        mutex_lock(bar->lock);
-        is_done = bar->count == bar->init;
-        mutex_unlock(bar->lock);
-    }
-
-    // all threads have incremented count - they may not have seen the updated count yet
-    // that is why there is a second done variable to signal that. Before all exited, we
-    // may not change count back to zero
-
-    bool is_leader;
-
-    mutex_lock(bar->lock);
-    bar->done += 1;
-    is_leader = bar->leader == id;
-    mutex_unlock(bar->lock);
-
-    if (is_leader) {
-        is_done = false;
-
-        while (!is_done) {
-            mutex_lock(bar->lock);
-            is_done = bar->done == bar->init;
-            mutex_unlock(bar->lock);
-        }
-
-        mutex_lock(bar->lock);
-        bar->count = 0;
-        bar->done = 0;
-        bar->leader = 0xFFFF;
-        mutex_unlock(bar->lock);
-    }
-
-    return is_leader;
-#endif
 }

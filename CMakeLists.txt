@@ -17,7 +17,7 @@ target_link_options(ime PUBLIC -DSTACK_SIZE_DEFAULT=8)
 target_link_options(ime PUBLIC -DSTACK_SIZE_TASKLET_0=4096)
 target_compile_definitions(ime PUBLIC -DNR_TASKLETS=16)
 
-add_library(ime-rt src/ime-rt/boot.s src/ime-rt/ime.c src/ime-rt/ime.h src/ime-rt/aead.c src/ime-rt/aead.h)
+add_library(ime-rt src/ime-rt/boot.s src/ime-rt/ime.c src/ime-rt/ime.h src/ime-rt/aead.c src/ime-rt/aead.h src/ime-rt/barrier.c src/ime-rt/barrier.h)
 set_target_properties(ime-rt PROPERTIES LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/ld/user.ld)
 target_include_directories(ime-rt PUBLIC src/ime-rt)
 target_include_directories(ime-rt PUBLIC src/poly)
@@ -76,6 +76,11 @@ target_compile_options(wram2-bench PUBLIC -O3)
 
 add_executable(stop src/stop/main.c)
 target_link_libraries(stop PUBLIC ime-rt)
+
+add_executable(chacha-bench src/chacha-bench/main.c)
+target_link_libraries(chacha-bench PUBLIC ime-rt)
+target_link_options(chacha-bench PUBLIC -DNR_TASKLETS=16)
+target_compile_definitions(chacha-bench PUBLIC -DNR_TASKLETS=16)
 
 add_executable(crypto-bench src/crypto-bench/main.c)
 target_link_libraries(crypto-bench PUBLIC ime-rt)
