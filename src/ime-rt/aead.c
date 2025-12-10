@@ -56,13 +56,13 @@ static void ptr_32_write(const uint32_t* src, t_ptr_32* tgt, size_t sz) {
     }
 }
 
-static void ime_chacha_crypt(const uint32_t* key, const uint32_t* iv,
+static void ime_chacha_crypt(const uint32_t* key, const uint32_t* iv, uint32_t stride,
                              size_t len, const t_ptr_32* buf, t_ptr_32* out_buf)
 {
     __attribute__((aligned(8))) uint32_t block[16];
     __attribute__((aligned(8))) uint32_t tmp[16];
 
-    for (size_t i = 0; i < (len + 63) / 64; ++i) {
+    for (size_t i = 0; i < (len + 63) / 64; i += stride) {
         size_t sz = len - i * 16;
         sz = sz < 64 ? sz : 64;
 
@@ -108,7 +108,7 @@ static void ime_aead_enc_gen(const uint32_t* key, const uint32_t* p_iv,
         iv = iv_buf;
     }
 
-    ime_chacha_crypt(key, iv, len, buf, out_buf);
+    ime_chacha_crypt(key, iv, 1, len, buf, out_buf);
     ime_poly_simple(key, iv, len, out_buf, out_tag);
 
     if (out_iv) {
@@ -132,7 +132,7 @@ static bool ime_aead_dec_gen(const uint32_t* key, const uint32_t* iv, const uint
 
     if (!valid) { return false; }
 
-    ime_chacha_crypt(key, iv, len, buf, out_buf);
+    ime_chacha_crypt(key, iv, 1, len, buf, out_buf);
     return true;
 }
 
@@ -160,4 +160,61 @@ bool ime_aead_dec_mram(const uint32_t* key, const uint32_t* iv, const uint32_t* 
                        size_t len, const uint32_t __mram_ptr* buf, uint32_t __mram_ptr* out_buf)
 {
     return ime_aead_dec_gen(key, iv, tag, len, PTR_32(buf), PTR_32(out_buf));
+}
+
+static void ime_chacha_enc_gen(const uint32_t* key, const uint32_t* p_iv, uint32_t stride,
+                               size_t len, const t_ptr_32* buf,
+                               t_ptr_32* out_buf, uint32_t* out_iv)
+{
+    const uint32_t* iv = NULL;
+    uint32_t iv_buf[4];
+
+    if (p_iv) {
+        iv = p_iv;
+    } else {
+        __ime_get_counter(iv_buf);
+        iv = iv_buf;
+    }
+
+    ime_chacha_crypt(key, iv, stride, len, buf, out_buf);
+
+    if (out_iv) {
+        out_iv[0] = iv[0];
+        out_iv[1] = iv[1];
+        out_iv[2] = iv[2];
+    }
+}
+
+static void ime_chacha_dec_gen(const uint32_t* key, const uint32_t* iv, uint32_t stride,
+                               size_t len, const t_ptr_32* buf, t_ptr_32* out_buf)
+{
+    ime_chacha_crypt(key, iv, stride, len, buf, out_buf);
+}
+
+void ime_chacha_enc(const uint32_t* key, const uint32_t* iv,
+                    size_t len, const uint32_t* buf,
+                    uint32_t* out_buf, uint32_t* out_iv)
+{
+    ime_chacha_enc_gen(key, iv, 1, len, PTR_32(buf), PTR_32(out_buf), out_iv);
+}
+
+
+void ime_chacha_dec(const uint32_t* key, const uint32_t* iv,
+                    size_t len, const uint32_t* buf, uint32_t* out_buf)
+{
+    ime_chacha_dec_gen(key, iv, 1, len, PTR_32(buf), PTR_32(out_buf));
+}
+
+
+void ime_chacha_enc_mram(const uint32_t* key, const uint32_t* iv, uint32_t stride,
+                         size_t len, const uint32_t __mram_ptr* buf,
+                         uint32_t __mram_ptr* out_buf, uint32_t* out_iv)
+{
+    ime_chacha_enc_gen(key, iv, stride, len, PTR_32(buf), PTR_32(out_buf), out_iv);
+}
+
+void ime_chacha_dec_mram(const uint32_t* key, const uint32_t* iv, uint32_t stride,
+                         size_t len, const uint32_t __mram_ptr* buf, uint32_t __mram_ptr* out_buf)
+{
+    ime_chacha_dec_gen(key, iv, stride, len, PTR_32(buf), PTR_32(out_buf));
 }
