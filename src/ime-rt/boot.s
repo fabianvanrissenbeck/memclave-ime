@@ -16,6 +16,9 @@ __bootstrap:
     call r23, main
 
     call r23, __ime_stop_tasklet
+    // here all threads except for 0 have stopped or will at least no longer use atomic memory
+    // therefore I can safely reset it
+    call r23, reset_atomic
 
     move r0, g_load_prop
     move r1, 12
@@ -57,3 +60,11 @@ poly_feed_block:
 
 poly_finalize:
     jump 0x7
+
+reset_atomic:
+    move r0, 255
+reset_atomic_loop:
+    release r0, 0x0, nz, .+1
+    add r0, r0, -1, pl, reset_atomic_loop
+
+    jump r23
