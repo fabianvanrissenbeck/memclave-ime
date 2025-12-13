@@ -1,0 +1,158 @@
+/*
+* Histogram (HST-L) with multiple tasklets
+*
+*/
+#include <stdint.h>
+#include <stdio.h>
+#include <defs.h>
+#include <mram.h>
+#include <alloc.h>
+#include <perfcounter.h>
+#include <barrier.h>
+#include <atomic_bit.h>
+#include <mutex.h>
+#include <atomic_bit.h>
+
+#include "support/common.h"
+#include "support/log.h"
+#include "support/memclave_mutex.h"
+
+#define NR_TASKLETS 16
+
+#define ARG_OFFSET  0x2000
+#define ARG_SIZE    sizeof(dpu_arguments_t)
+#define A_OFFSET    (ARG_OFFSET + ((ARG_SIZE + 0xFF) & ~0xFF))
+
+typedef struct { volatile uint32_t v; uint32_t pad; } barrier_slot_t;
+
+__attribute__((aligned(8)))
+static struct {
+    barrier_slot_t arrive[NR_TASKLETS];
+    volatile uint32_t sense;
+} gbar;
+
+static inline __attribute__((always_inline)) void mybarrier_init(void) {
+    if (me() == 0) {
+        gbar.sense = 0;
+        for (uint32_t i = 0; i < NR_TASKLETS; i++) gbar.arrive[i].v = 1;
+        __asm__ __volatile__("" ::: "memory");
+    }
+    while (gbar.sense != 0) { __asm__ __volatile__("" ::: "memory"); }
+}
+
+static inline __attribute__((always_inline)) void mybarrier_wait(void) {
+    const uint32_t tasklet_id    = me();
+    const uint32_t next_s = !gbar.sense;
+    gbar.arrive[tasklet_id].v = next_s;
+    __asm__ __volatile__("" ::: "memory");
+    if (tasklet_id == 0) {
+        for (uint32_t i = 0; i < NR_TASKLETS; i++)
+            while (gbar.arrive[i].v != next_s) { __asm__ __volatile__("" ::: "memory"); }
+        gbar.sense = next_s;
+        __asm__ __volatile__("" ::: "memory");
+    } else {
+        while (gbar.sense != next_s) { __asm__ __volatile__("" ::: "memory"); }
+    }
+}
+
+static uint32_t *histo_dpu;             /* shared WRAM histogram */
+#define NR_LOCKS 32u                    /* choose power of two */
+static mc_mutex_t locks[NR_LOCKS];
+
+static inline uint32_t lock_for_bin(uint32_t b) { return (b & (NR_LOCKS - 1)); }
+static inline __attribute__((always_inline))
+uint32_t map_bin(T d, uint32_t bins) {
+    return (uint32_t)(((uint32_t)d * bins) >> DEPTH);
+}
+
+// Histogram in each tasklet
+//static void histogram(uint32_t* histo, uint32_t bins, T *input, uint32_t histo_id, unsigned int l_size){
+//    for(unsigned int j = 0; j < l_size; j++) {
+//        T d = (input[j] * bins) >> DEPTH;
+//        mutex_lock(my_mutex[histo_id]);
+//        histo[d] += 1;
+//        mutex_unlock(my_mutex[histo_id]);
+//    }
+//}
+
+// main_kernel
+int main() {
+    unsigned int tasklet_id = me();
+#if PRINT
+    printf("tasklet_id = %u\n", tasklet_id);
+#endif
+    if (tasklet_id == 0) {
+        mybarrier_init();
+        mem_reset();
+        sk_log_init();
+	mc_mutex_global_init();
+    }
+    mybarrier_wait();
+
+    dpu_arguments_t args;
+    mram_read((__mram_ptr void const*)ARG_OFFSET, &args, sizeof(args));
+    const uint32_t input_size_dpu_bytes          = args.size;
+    const uint32_t input_size_dpu_bytes_transfer = args.transfer_size;
+    const uint32_t bins                          = args.bins;
+
+    // MRAM layout
+    const uint32_t mram_base_addr_A     = (uint32_t)A_OFFSET;
+    const uint32_t mram_base_addr_histo = (uint32_t)(A_OFFSET + input_size_dpu_bytes_transfer);
+
+     // Allocate shared histogram and locks once
+    if (tasklet_id == 0) {
+	for (uint32_t i = 0; i < NR_LOCKS; ++i) locks[i] = mc_mutex_alloc();
+        histo_dpu = (uint32_t*)mem_alloc(bins * sizeof(uint32_t));
+        for (uint32_t i = 0; i < bins; ++i) histo_dpu[i] = 0;
+    }
+    mybarrier_wait();
+
+    T *cache_A = (T*)mem_alloc(BLOCK_SIZE);
+
+    // Read window per tasklet
+    const uint32_t base_tasklet = tasklet_id << BLOCK_SIZE_LOG2;
+
+    // Compute histogram
+    for(unsigned int byte_index = base_tasklet; byte_index < input_size_dpu_bytes; byte_index += BLOCK_SIZE * NR_TASKLETS){
+
+        // Bound checking
+        uint32_t l_size_bytes = (byte_index + BLOCK_SIZE >= input_size_dpu_bytes) ? (input_size_dpu_bytes - byte_index) : BLOCK_SIZE;
+
+        // Load cache with current MRAM block
+        mram_read((const __mram_ptr void*)(mram_base_addr_A + byte_index), cache_A, l_size_bytes);
+
+        // Histogram in each tasklet
+        const uint32_t l_elems = l_size_bytes >> DIV;   /* DIV = log2(sizeof(T)) */
+	for (uint32_t j = 0; j < l_elems; ++j) {
+            const uint32_t b   = map_bin(cache_A[j], bins);
+            const uint32_t lid = lock_for_bin(b);
+            mc_mutex_lock(locks[lid]);
+            histo_dpu[b] += 1;
+            mc_mutex_unlock(locks[lid]);
+        }
+    }
+
+    // Barrier
+    mybarrier_wait();
+    if (tasklet_id == 0) {
+        // write full histogram
+        const uint32_t bytes = bins * sizeof(uint32_t);
+        if (bytes <= 2048) {
+            mram_write(histo_dpu, (__mram_ptr void *)mram_base_addr_histo, bytes);
+        } else {
+            uint32_t written = 0;
+            while (written < bytes) {
+                const uint32_t chunk = ((bytes - written) > 2048) ? 2048 : (bytes - written);
+                mram_write((void*)((uint8_t*)histo_dpu + written),
+                           (__mram_ptr void*)(mram_base_addr_histo + written),
+                           chunk);
+                written += chunk;
+            }
+        }
+        sk_log_write_idx(0, 0xffff);
+        sk_log_write_idx(1, (uint64_t)bins);
+        sk_log_write_idx(2, (uint64_t)args.size);
+        sk_log_write_idx(3, (uint64_t)args.transfer_size);
+    }
+    return 0;
+}

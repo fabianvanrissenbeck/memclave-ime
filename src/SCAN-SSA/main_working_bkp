@@ -1,0 +1,243 @@
+/*
+* Scan with multiple tasklets (Scan-scan-add)
+*
+*/
+#include <stdint.h>
+#include <stdio.h>
+#include <defs.h>
+#include <mram.h>
+#include <alloc.h>
+#include <perfcounter.h>
+#include <handshake.h>
+#include <barrier.h>
+
+#include "support/common.h"
+#include "support/log.h"
+
+#define NR_TASKLETS 16
+
+#define ARG_OFFSET  0x2000
+#define ARG_SIZE    ((uint32_t)sizeof(dpu_arguments_t))
+#define A_OFFSET    (ARG_OFFSET + ((ARG_SIZE + 0xFF) & ~0xFF))
+
+typedef struct { volatile uint32_t v; uint32_t pad; } barrier_slot_t;
+__attribute__((aligned(8)))
+static struct {
+    barrier_slot_t arrive[NR_TASKLETS];
+    volatile uint32_t sense;
+} gbar;
+
+static inline __attribute__((always_inline)) void mybarrier_init(void) {
+    if (me() == 0) {
+        gbar.sense = 0;
+        for (uint32_t i = 0; i < NR_TASKLETS; i++) gbar.arrive[i].v = 1;
+        __asm__ __volatile__("" ::: "memory");
+    }
+    while (gbar.sense != 0) { __asm__ __volatile__("" ::: "memory"); }
+}
+
+static inline __attribute__((always_inline)) void mybarrier_wait(void) {
+    const uint32_t tasklet_id   = me();
+    const uint32_t nextS = !gbar.sense;
+    gbar.arrive[tasklet_id].v = nextS;
+    __asm__ __volatile__("" ::: "memory");
+    if (tasklet_id == 0) {
+        for (uint32_t i = 0; i < NR_TASKLETS; i++)
+            while (gbar.arrive[i].v != nextS) { __asm__ __volatile__("" ::: "memory"); }
+        gbar.sense = nextS;
+        __asm__ __volatile__("" ::: "memory");
+    } else {
+        while (gbar.sense != nextS) { __asm__ __volatile__("" ::: "memory"); }
+    }
+}
+
+// Array for communication between adjacent tasklets
+typedef struct {
+    volatile T        val;
+    volatile uint32_t epoch;
+} msg_slot_t;
+
+__attribute__((aligned(8))) static msg_slot_t g_msg[NR_TASKLETS];
+__attribute__((aligned(8))) static volatile uint32_t g_epoch;
+
+
+static inline __attribute__((always_inline))
+void handshake_init(void) {
+    if (me() == 0) {
+        g_epoch = 1;
+        for (uint32_t i = 0; i < NR_TASKLETS; i++) {
+            g_msg[i].val = (T)0;
+            g_msg[i].epoch = 0;
+        }
+        __asm__ __volatile__("" ::: "memory");
+    }
+}
+
+static inline __attribute__((always_inline))
+void read_args_aligned(dpu_arguments_t *args) {
+    _Alignas(8) uint8_t buf[(sizeof(dpu_arguments_t) + 7u) & ~7u];
+    mram_read((__mram_ptr void const*)ARG_OFFSET, buf, sizeof(buf));
+    __builtin_memcpy(args, buf, sizeof(dpu_arguments_t));
+}
+
+static T message_partial_count;
+
+// Scan in each tasklet
+static inline __attribute__((always_inline))
+T scan_regs(T *output, const T *input) {
+    output[0] = input[0];
+#pragma unroll
+    for (unsigned j = 1; j < REGS; j++) {
+        output[j] = output[j - 1] + input[j];
+    }
+    return output[REGS - 1];
+}
+
+static inline __attribute__((always_inline))
+void add_regs(T *io, T p_count) {
+#pragma unroll
+    for (unsigned j = 0; j < REGS; j++) io[j] += p_count;
+}
+
+// Handshake with adjacent tasklets
+static inline __attribute__((always_inline))
+T handshake_sync(T l_count, unsigned tasklet_id, T *next_partial_accum /*out*/) {
+    const uint32_t epoch = g_epoch;
+
+    T p_count = 0;
+    if (tasklet_id != 0) {
+        // wait until prev tasklet publishes epoch
+        while (g_msg[tasklet_id].epoch != epoch) { __asm__ __volatile__("" ::: "memory"); }
+        p_count = g_msg[tasklet_id].val;
+    }
+
+    if (tasklet_id < (NR_TASKLETS - 1)) {
+        g_msg[tasklet_id + 1].val   = p_count + l_count;
+        __asm__ __volatile__("" ::: "memory");
+        g_msg[tasklet_id + 1].epoch = epoch;
+        __asm__ __volatile__("" ::: "memory");
+    } else {
+        // last tasklet can compute next running total seen by the DPU
+        *next_partial_accum = p_count + l_count;
+    }
+    return p_count;
+}
+
+extern int main_kernel1(void);
+extern int main_kernel2(void);
+
+int (*kernels[nr_kernels])(void) = {main_kernel1, main_kernel2};
+
+int main(void) {
+    dpu_arguments_t args;
+    read_args_aligned(&args);
+    // init once
+    if (me() == 0) {
+        mybarrier_init();
+        handshake_init();
+        mem_reset();
+        sk_log_init();
+    }
+    mybarrier_wait();
+
+    return kernels[args.kernel]();
+}
+
+// Scan-(handshake)scan
+int main_kernel1() {
+#if 1 // Comment out for appendix experiment
+    unsigned int tasklet_id = me();
+#if PRINT
+    printf("tasklet_id = %u\n", tasklet_id);
+#endif
+    dpu_arguments_t args;
+    //mram_read((__mram_ptr void const*)ARG_OFFSET, &args, sizeof(args));
+    read_args_aligned(&args);
+
+    const uint32_t input_size_bytes = args.size;
+    const uint32_t A_base = (uint32_t)A_OFFSET;
+    const uint32_t B_base = (uint32_t)(A_OFFSET + input_size_bytes);
+
+    if (tasklet_id == (NR_TASKLETS - 1)) message_partial_count = args.t_count;
+    mybarrier_wait();
+
+    // Initialize a local cache to store the MRAM block
+    T *cache_A = (T *) mem_alloc(BLOCK_SIZE);
+    T *cache_B = (T *) mem_alloc(BLOCK_SIZE);
+
+    const uint32_t base_tasklet = tasklet_id << BLOCK_SIZE_LOG2;
+	
+    for (uint32_t byte_idx = base_tasklet; byte_idx < input_size_bytes; byte_idx += (BLOCK_SIZE * NR_TASKLETS)) {
+
+	if (tasklet_id == 0) {
+            g_epoch++;
+            __asm__ __volatile__("" ::: "memory");
+        }
+        mybarrier_wait();
+        // Load cache with current MRAM block
+	mram_read((const __mram_ptr void*)(A_base + byte_idx), cache_A, BLOCK_SIZE);
+
+        // Scan in each tasklet
+        T l_count = scan_regs(cache_B, cache_A); 
+
+        // Sync with adjacent tasklets
+	T next_block_accum = 0;
+        T p_count = handshake_sync(l_count, tasklet_id, &next_block_accum);
+
+        // Barrier
+	mybarrier_wait();
+
+        // Add in each tasklet
+        add_regs(cache_B, message_partial_count + p_count);
+
+        // Write cache to current MRAM block
+	mram_write(cache_B, (__mram_ptr void*)(B_base + byte_idx), BLOCK_SIZE);
+
+        // Total count in this DPU
+        if (tasklet_id == (NR_TASKLETS - 1)) {
+            message_partial_count = message_partial_count + next_block_accum;
+        }
+        mybarrier_wait();
+    }
+
+    if (tasklet_id == 0) {
+        sk_log_write_idx(0, (uint64_t)message_partial_count);
+    }
+
+#endif
+    return 0;
+}
+
+// Add
+int main_kernel2() {
+    unsigned int tasklet_id = me();
+#if PRINT
+    printf("tasklet_id = %u\n", tasklet_id);
+#endif
+    dpu_arguments_t args;
+    read_args_aligned(&args);
+
+    const uint32_t input_size_bytes = args.size;
+    const uint32_t B_base = (uint32_t)(A_OFFSET + input_size_bytes);
+
+    T *cache_B = (T*)mem_alloc(BLOCK_SIZE);
+    const uint32_t base_tasklet = tasklet_id << BLOCK_SIZE_LOG2;
+
+    for (uint32_t byte_idx = base_tasklet; byte_idx < input_size_bytes; byte_idx += (BLOCK_SIZE * NR_TASKLETS)) {
+
+        // Load cache with current MRAM block
+	mram_read((const __mram_ptr void*)(B_base + byte_idx), cache_B, BLOCK_SIZE);
+
+        // Add in each tasklet
+        add_regs(cache_B, args.t_count);
+
+        // Write cache to current MRAM block
+	mram_write(cache_B, (__mram_ptr void*)(B_base + byte_idx), BLOCK_SIZE);
+
+    }
+    if (tasklet_id == 0) {
+        sk_log_write_idx(1, (uint64_t)args.t_count); // debug
+    }
+
+    return 0;
+}

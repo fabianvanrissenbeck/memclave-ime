@@ -58,6 +58,42 @@ add_executable(hsts-example src/HST-S/main.c)
 target_link_libraries(hsts-example PUBLIC ime-rt)
 target_link_options(hsts-example PUBLIC -DNR_TASKLETS=16)
 
+add_executable(hstl-example src/HST-L/main.c)
+target_link_libraries(hstl-example PUBLIC ime-rt)
+target_link_options(hstl-example PUBLIC -DNR_TASKLETS=16)
+
+add_executable(scanssa-example src/SCAN-SSA/main.c)
+target_link_libraries(scanssa-example PUBLIC ime-rt)
+target_link_options(scanssa-example PUBLIC -DNR_TASKLETS=16)
+
+add_executable(scanrss-example src/SCAN-RSS/main.c)
+target_link_libraries(scanrss-example PUBLIC ime-rt)
+target_link_options(scanrss-example PUBLIC -DNR_TASKLETS=16)
+
+add_executable(red-example src/RED/main.c)
+target_link_libraries(red-example PUBLIC ime-rt)
+target_link_options(red-example PUBLIC -DNR_TASKLETS=16)
+
+add_executable(trns-example src/TRNS/main.c)
+target_link_libraries(trns-example PUBLIC ime-rt)
+target_link_options(trns-example PUBLIC -DNR_TASKLETS=16)
+
+add_executable(sel-example src/SEL/main.c)
+target_link_libraries(sel-example PUBLIC ime-rt)
+target_link_options(sel-example PUBLIC -DNR_TASKLETS=16)
+
+add_executable(uni-example src/UNI/main.c)
+target_link_libraries(uni-example PUBLIC ime-rt)
+target_link_options(uni-example PUBLIC -DNR_TASKLETS=16)
+
+add_executable(bs-example src/BS/main.c)
+target_link_libraries(bs-example PUBLIC ime-rt)
+target_link_options(bs-example PUBLIC -DNR_TASKLETS=16)
+
+add_executable(ts-example src/TS/main.c)
+target_link_libraries(ts-example PUBLIC ime-rt)
+target_link_options(ts-example PUBLIC -DNR_TASKLETS=16)
+
 add_executable(msg src/msg/main.c)
 target_link_libraries(msg PUBLIC ime-rt)
 target_link_options(msg PUBLIC -DNR_TASKLETS=1)
