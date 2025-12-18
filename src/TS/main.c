@@ -102,6 +102,10 @@ int main(void){
         /* mean/sigma bases (also shifted by myStartElem like PRIM code) */
         const uint32_t mean_base  = ts_base + (uint32_t)((slice_per_dpu + query_length) * sizeof(DTYPE));
         const uint32_t sigma_base = mean_base + (uint32_t)((slice_per_dpu + query_length) * sizeof(DTYPE));
+
+	const uint32_t ts_chunk_bytes = (uint32_t)((slice_per_dpu + query_length) * sizeof(DTYPE));
+	const uint32_t results_base   = sigma_base + ts_chunk_bytes; // MRAM region for NR_TASKLETS results
+
         
         uint32_t current_mram_block_addr_TS      = starting_offset_ts;
         uint32_t current_mram_block_addr_TSMean  = mean_base  + (uint32_t)(myStartElem * sizeof(DTYPE));
@@ -161,27 +165,23 @@ int main(void){
 		}
 	}
 
-        /* store per-tasklet result */
+        /* store per-tasklet result in WRAM */
         DPU_RESULTS[tasklet_id].minValue = min_distance;
         DPU_RESULTS[tasklet_id].minIndex = min_index;
-        
+        DPU_RESULTS[tasklet_id].maxValue = 0;
+        DPU_RESULTS[tasklet_id].maxIndex = 0;
+
         mybarrier_wait();
-        
-        /* reduce + publish per-DPU min to MRAM log (2 words) */
+
+        /* write each tasklet's result to MRAM (PRIM-style: host gathers NR_TASKLETS results per DPU) */
+        mram_write((const void *)&DPU_RESULTS[tasklet_id],
+                   (__mram_ptr void *)(results_base + tasklet_id * sizeof(dpu_result_t)),
+                   sizeof(dpu_result_t));
+
+        mybarrier_wait();
+
         if (tasklet_id == 0) {
-            DTYPE bestV = DTYPE_MAX;
-            uint32_t bestI = 0;
-        
-            for (unsigned t = 0; t < NR_TASKLETS; t++) {
-                DTYPE v = DPU_RESULTS[t].minValue;
-                if (v > 0 && v < bestV) {
-                    bestV = v;
-                    bestI = (uint32_t)DPU_RESULTS[t].minIndex;
-                }
-            }
-        
-            sk_log_write_idx(0, (uint64_t)(int64_t)bestV);
-            sk_log_write_idx(1, (uint64_t)bestI);
+            __ime_wait_for_host();
         }
 
 	return 0;

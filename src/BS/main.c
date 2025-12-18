@@ -168,6 +168,7 @@ int main(void){
         for (unsigned t = 0; t < NR_TASKLETS; t++)
             if (DPU_RESULTS[t].found > maxf) maxf = DPU_RESULTS[t].found;
         sk_log_write_idx(0, (uint64_t)maxf);
+    	__ime_wait_for_host();
     }
   return 0;
 }

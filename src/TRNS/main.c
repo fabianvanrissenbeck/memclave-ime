@@ -56,13 +56,14 @@ int main(void) {
             mybarrier_init(); 
             mem_reset(); 
             sk_log_init(); 
+	    if (args.kernel == 1) curr_tile = 0;
     }
     mybarrier_wait();
     // Kernel
     return kernels[args.kernel]();
 }
 
-// Step 2: 0010
+// Step 2
 int main_kernel1() {
     unsigned int tasklet_id = me();
 #if PRINT
@@ -88,11 +89,15 @@ int main_kernel1() {
         }
         write_tile_step2(A, tile * m * n, backup, m, n);
     }
+    mybarrier_wait();
+    if (tasklet_id == 0) {
+    	__ime_wait_for_host();
+    }
 
     return 0;
 }
 
-// Step 3: 0100
+// Step 3
 int main_kernel2() {
     unsigned int tasklet_id = me();
 #if PRINT
@@ -109,7 +114,7 @@ int main_kernel2() {
     const uint32_t n          = args.n;
     const uint32_t M_         = args.M_;
     const uint32_t tile_max   = M_ * n - 1u;
-    const uint32_t done_array = (uint32_t)(A_OFFSET + (uint32_t)(M_ * m * n) * (uint32_t)sizeof(T));
+    const uint32_t done_array = (uint32_t)(A_OFFSET + (uint32_t)((uint64_t)M_ * m * n * sizeof(T)));
 
     T* data = (T*)mem_alloc(sizeof(T) * m);
     T* backup = (T*)mem_alloc(sizeof(T) * m);
@@ -142,6 +147,10 @@ int main_kernel2() {
             }
         }
         tile = get_tile();
+    }
+    mybarrier_wait();
+    if (tasklet_id == 0) {
+    	__ime_wait_for_host();
     }
 		
     return 0;
@@ -180,8 +189,7 @@ void write_tile_step2(uint32_t A, uint32_t offset, T* variable, uint32_t m, uint
       } else {
             transfer = rest;
       }
-      //mram_write(variable + (m * n - rest) * sizeof(T), (__mram_ptr void*)(A + (offset + m * n - rest) * sizeof(T)), sizeof(T) * transfer);
-      mram_write(variable + (m * n - rest) * sizeof(T), (__mram_ptr void*)(A + (offset + m * n - rest)), sizeof(T) * transfer);
+      mram_write(variable + (m * n - rest), (__mram_ptr void*)(A + (offset + m * n - rest) * sizeof(T)), sizeof(T) * transfer);
       rest -= transfer;
     }
 }

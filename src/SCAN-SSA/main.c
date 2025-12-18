@@ -52,8 +52,8 @@ extern int main_kernel2(void);
 
 int (*kernels[nr_kernels])(void) = {main_kernel1, main_kernel2};
 
+dpu_arguments_t args;
 int main(void) {
-    dpu_arguments_t args;
     read_args_aligned(&args);
     // init once
     if (me() == 0) {
@@ -74,9 +74,9 @@ int main_kernel1() {
 #if PRINT
     printf("tasklet_id = %u\n", tasklet_id);
 #endif
-    dpu_arguments_t args;
+    //dpu_arguments_t args;
     //mram_read((__mram_ptr void const*)ARG_OFFSET, &args, sizeof(args));
-    read_args_aligned(&args);
+    //read_args_aligned(&args);
 
     const uint32_t input_size_bytes = args.size;
     const uint32_t A_base = (uint32_t)A_OFFSET;
@@ -126,6 +126,7 @@ int main_kernel1() {
 
     if (tasklet_id == 0) {
         sk_log_write_idx(0, (uint64_t)message_partial_count);
+    	__ime_wait_for_host();
     }
 
 #endif
@@ -159,8 +160,10 @@ int main_kernel2() {
 	mram_write(cache_B, (__mram_ptr void*)(B_base + byte_idx), BLOCK_SIZE);
 
     }
+    mybarrier_wait();
     if (tasklet_id == 0) {
         sk_log_write_idx(1, (uint64_t)args.t_count); // debug
+    	__ime_wait_for_host();
     }
 
     return 0;

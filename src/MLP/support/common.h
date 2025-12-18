@@ -23,7 +23,7 @@ struct dpu_info_t *dpu_info;
 #define max(x, y) (x > y ? x : y)
 #define min(x, y) (x < y ? x : y)
 
-#define BL 10
+//#define BL 10
 // Transfer size between MRAM and WRAM
 #ifdef BL
 #define BLOCK_SIZE_LOG2 BL

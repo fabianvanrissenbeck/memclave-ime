@@ -128,6 +128,7 @@ int main_kernel1() {
     mybarrier_wait();
     if (tasklet_id == 0) {
         sk_log_write_idx(0, (uint64_t)message_partial_count);
+    	__ime_wait_for_host();
     }
 
     return 0;

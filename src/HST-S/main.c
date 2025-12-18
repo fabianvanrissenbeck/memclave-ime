@@ -186,6 +186,7 @@ int main() {
         //sk_log_write_idx(1, (uint64_t) bins);
         //sk_log_write_idx(2, (uint64_t) args.size);
         //sk_log_write_idx(3, (uint64_t) args.transfer_size);
+        __ime_wait_for_host();
     }
 
     return 0;

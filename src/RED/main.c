@@ -107,6 +107,7 @@ int main(void) {
         T total = message[0];
         for (unsigned t = 1; t < NR_TASKLETS; t++) total += message[t];
         sk_log_write_idx(0, (uint64_t)total);
+    	__ime_wait_for_host();
     }
     return 0;
 }

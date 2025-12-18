@@ -124,8 +124,8 @@ int main_kernel1() {
         for (unsigned t = 1; t < NR_TASKLETS; t++) total += message[t];
         /* publish per-DPU total to host via sk log index 0 */
         sk_log_write_idx(0, (uint64_t)total);
+    	__ime_wait_for_host();
     }
-    mybarrier_wait();
 
     return 0;
 }
@@ -188,6 +188,11 @@ int main_kernel2() {
         }
 	mybarrier_wait();
     }
+    if (tasklet_id == 0) {
+        sk_log_write_idx(1, (uint64_t)args.t_count); // debug
+    	__ime_wait_for_host();
+    }
+
 		
     return 0;
 }
