@@ -1,5 +1,5 @@
 /**
-\mainpage The Memclave Runtime Library
+\page ime-main The Memclave Runtime Library
 
 The memclave runtime library is linked against every subkernel that can be used for Memclave.
 It modifies linking behavior of UPMEM's toolchain, provides replacements for some of UPMEM's
