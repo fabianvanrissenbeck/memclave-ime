@@ -1,0 +1,79 @@
+/**
+\mainpage The Memclave Runtime Library
+
+The memclave runtime library is linked against every subkernel that can be used for Memclave.
+It modifies linking behavior of UPMEM's toolchain, provides replacements for some of UPMEM's
+library routines (such as barriers) and allows accessing some of the *loader's* built-in
+cryptographic primitives, such as the ChaCha20-Poly1305 AEAD.
+
+## Building Subkernels for Memclave
+
+Subkernels are usually build on a normal x86 machine using UPMEM's DPU cross-compiler, which
+is based on `clang`. Memclave introduces a slightly modified ABI by restricting access to two
+general purpose register `r20` and `r21`, requiring a modified toolchain. We provide this
+toolchain in form of a docker container. You may import the image provided or build it yourself.
+Refer to the setup guide for more information.
+
+We recommend building subkernels using the CMake build tool. You may use other build systems as
+well. As a short starting point, we'll describe creating a simple subkernel with the purpose of
+adding to integer vectors in EM. For this, create a new folder called `add` and then run an instance
+of our development container `memclave:latest` with the folder mounted inside of it:
+
+```bash
+mkdir -p add
+docker run --rm -it -v ./add:/add memclave:latest bash
+```
+
+Next, create a simple CMake project by creating a `CMakeLists.txt` file in the root of your project
+folder `add`. Your `CMakeLists.txt` should look something like this:
+
+```cmake
+cmake_minimum_required(VERSION 3.20)
+project(add C)
+
+set(CMAKE_C_STANDARD 11)
+
+add_subdirectory(ime EXCLUDE_FROM_ALL)
+
+add_executable(add add.c)
+target_link_libraries(add PUBLIC ime-rt)
+```
+
+You may notice that the `add` subkernel is linked against the `ime-rt` library. This is necessary
+for all subkernels because Memclave modifies UPMEM's usual memory layout for DPU kernels. The
+`CMakeLists.txt` also adds the runtime library as a subdirectory. This is our recommended way of
+using the runtime library, though manual compilation and linkage is possible. Simply copy the `ime`
+folder into the root of your `add` project folder.
+
+Once this is done, create a simple subkernel named `add.c`:
+
+```c
+#include <mram.h>
+
+__mram uint64_t a[64];
+__mram uint64_t b[64];
+__mram uint64_t c[64];
+
+int main(void) {
+    for (int i = 0; i < 64; ++i) {
+        c[i] = a[i] + b[i];
+    }
+}
+```
+
+Finally, you can build your subkernel using CMake.
+
+```bash
+cmake -DCMAKE_TOOLCHAIN_FILE=/usr/share/upmem/cmake/dpu.cmake -B build .
+cmake --build build
+```
+
+Please note the additional `-DCMAKE_TOOLCHAIN_FILE=/usr/share/upmem/cmake/dpu.cmake` flag to CMake.
+This instructs cmake to cross-compile for the UPMEM/Memclave architecture, instead of your host
+architecture.
+
+Building should have generated the file `build/add`. This is your addition subkernel, which in combination
+with the add example from the memclave client library, is your first Memclave program.
+
+
+*/
