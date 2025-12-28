@@ -94,6 +94,14 @@ add_executable(ts-example src/TS/main.c)
 target_link_libraries(ts-example PUBLIC ime-rt)
 target_link_options(ts-example PUBLIC -DNR_TASKLETS=16)
 
+add_executable(spmv-example src/SpMV/main.c)
+target_link_libraries(spmv-example PUBLIC ime-rt)
+target_link_options(spmv-example PUBLIC -DNR_TASKLETS=16)
+
+add_executable(nw-example src/NW/main.c)
+target_link_libraries(nw-example PUBLIC ime-rt)
+target_link_options(nw-example PUBLIC -DNR_TASKLETS=16)
+
 add_executable(msg src/msg/main.c)
 target_link_libraries(msg PUBLIC ime-rt)
 target_link_options(msg PUBLIC -DNR_TASKLETS=1)
