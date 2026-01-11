@@ -1,5 +1,5 @@
 /*
- * STREAMP implementation of Matrix Profile with multiple tasklets
+ * STREAMP
  *
  */
 
@@ -118,9 +118,6 @@ int main(void){
 	DTYPE *cache_TSMean   = (DTYPE *) mem_alloc(BLOCK_SIZE);
 	DTYPE *cache_TSSigma  = (DTYPE *) mem_alloc(BLOCK_SIZE);
 	DTYPE *cache_dotprods = (DTYPE *) mem_alloc(BLOCK_SIZE);
-
-	// Create result structure pointer
-	//dpu_result_t *result = &DPU_RESULTS[tasklet_id];
 
 	// Auxiliary variables
 	DTYPE min_distance = DTYPE_MAX;

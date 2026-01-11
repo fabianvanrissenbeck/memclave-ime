@@ -173,7 +173,6 @@ int main_kernel2() {
         // Sync with adjacent tasklets
         T p_count = handshake_sync(l_count, tasklet_id, &next_block_accum);
 
-        // Barrier
         mybarrier_wait();
 
         // Add in each tasklet

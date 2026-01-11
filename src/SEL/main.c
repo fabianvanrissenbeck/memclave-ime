@@ -29,7 +29,6 @@ void read_args_aligned(dpu_arguments_t *args) {
 }
 
 // Array for communication between adjacent tasklets
-//uint32_t message[NR_TASKLETS];
 uint32_t message_partial_count;
 
 // SEL in each tasklet
@@ -49,24 +48,15 @@ extern int main_kernel1(void);
 
 int (*kernels[nr_kernels])(void) = {main_kernel1};
 
-int main(void) { 
-    dpu_arguments_t args;
-    read_args_aligned(&args);
-
-    if (me() == 0) {
+// main_kernel1
+int main() {
+    unsigned int tasklet_id = me();
+    if (tasklet_id == 0) {
         mybarrier_init();
         handshake_init();   // sets g_epoch and clears mailboxes
         mem_reset();
         sk_log_init();
     }
-    mybarrier_wait();
-
-    return kernels[0]();
-}
-
-// main_kernel1
-int main_kernel1() {
-    unsigned int tasklet_id = me();
 #if PRINT
     printf("tasklet_id = %u\n", tasklet_id);
 #endif
@@ -103,7 +93,7 @@ int main_kernel1() {
         mram_read((__mram_ptr void const*)(A_base + byte_index), cache_A, BLOCK_SIZE);
 
         // SELECT in each tasklet
-        uint32_t l_count = select(cache_B, cache_A); // In-place or out-of-place?
+        uint32_t l_count = select(cache_B, cache_A);
 
         // Sync with adjacent tasklets
         T next_block_accum = 0;

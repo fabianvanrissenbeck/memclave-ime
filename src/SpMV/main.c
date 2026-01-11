@@ -1,5 +1,5 @@
 /*
-* SpMV with multiple tasklets
+* SpMV
 *
 */
 #include <stdio.h>
@@ -18,8 +18,6 @@
 #include "support/common.h"
 #include "support/log.h"
 #include "support/mc_sync.h"
-
-#define PRINT_ERROR(fmt, ...) printf("\033[0;31mERROR:\033[0m   "fmt"\n", ##__VA_ARGS__)
 
 #define MIN(x, y)   (((x) < (y))?(x):(y))
 
@@ -47,7 +45,6 @@ int main() {
     if(me() == 0) {
         if(numRows%2 != 0) {
             // The number of rows assigned to the DPU must be a multiple of two to ensure that writes to the output vector are aligned to 8 bytes
-            PRINT_ERROR("The number of rows is not a multiple of two!");
         }
     }
 

@@ -1,8 +1,3 @@
-/*
-* 3-step matrix transposition with multiple tasklets
-* Acks: Stefano Ballarin (P&S PIM Fall 2020)
-*
-*/
 #include <stdint.h>
 #include <stdio.h>
 #include <defs.h>
@@ -69,7 +64,6 @@ int main_kernel1() {
 #if PRINT
     printf("tasklet_id = %u\n", tasklet_id);
 #endif
-    // Barrier
     mybarrier_wait();
 
     dpu_arguments_t args;
@@ -103,7 +97,6 @@ int main_kernel2() {
 #if PRINT
     printf("tasklet_id = %u\n", tasklet_id);
 #endif
-    // Barrier
     mybarrier_wait();
 
     dpu_arguments_t args;
@@ -174,7 +167,6 @@ void read_tile_step2(uint32_t A, uint32_t offset, T* variable, uint32_t m, uint3
       } else {
             transfer = rest;
       }
-      //mram_read((__mram_ptr void*)(A + (offset + m * n - rest) * sizeof(T)), variable + (m * n - rest) * sizeof(T), sizeof(T) * transfer);
       mram_read((__mram_ptr void*)(A + (offset + m * n - rest) * sizeof(T)), variable + (m * n - rest), sizeof(T) * transfer);
       rest -= transfer;
     }

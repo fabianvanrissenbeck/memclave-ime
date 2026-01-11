@@ -11,16 +11,6 @@
 #include <barrier.h>
 #include <perfcounter.h>
 
-/* debug slots: 0 is already used for final result; use 1..7 */
-#define DBG_QINFO   1  /* [tasklet<<48 | q_low16<<32 | (uint32)searching_for_low32] */
-#define DBG_BOUNDS  2  /* [uint32(R-L) << 32 | uint32(mid-L)] */
-#define DBG_BRANCH  3  /* [state<<32 | (uint32)found_low32]   */
-#define DBG_BASES   4  /* [uint32(A_base) << 32 | uint32(A_end)] */
-#define DBG_ADDRS   5  /* [uint32(L) << 32 | uint32(R)]       */
-#define DBG_TAIL    6  /* [uint32(remain) << 32 | uint32(start2 - A_base)] */
-#define DBG_MARKER  7  /* arbitrary breadcrumbs */
-
-
 #define NR_TASKLETS 16
 
 #include "support/common.h"
@@ -82,17 +72,6 @@ int main(void){
   const uint32_t A_base     = (uint32_t)A_OFFSET;
   const uint32_t A_end      = A_base + (uint32_t)(input_size * sizeof(DTYPE));
   uint32_t query_addr       = A_end + tasklet_id * (uint32_t)((args.slice_per_dpu / NR_TASKLETS) * sizeof(DTYPE));
-#if 0
-    if (me() == 0){ 
-	    sk_log_write_idx(0, 0xaaaa);
-	    sk_log_write_idx(1, input_size);
-	    sk_log_write_idx(2, A_base);
-	    sk_log_write_idx(3, A_end);
-	    sk_log_write_idx(4, query_addr);
-	    sk_log_write_idx(5, args.slice_per_dpu);
-    }
-    return 0;
-#endif
 
   // Initialize a local cache to store the MRAM block
   DTYPE *cache_A     = (DTYPE *) mem_alloc(BLOCK_SIZE);
@@ -114,8 +93,6 @@ int main(void){
     /* prefetch first/last blocks */
     mram_read((__mram_ptr void const *)L, cache_aux_A, BLOCK_SIZE);
     mram_read((__mram_ptr void const *)(R - BLOCK_SIZE), cache_aux_B, BLOCK_SIZE);
-    //if (me() == 0)sk_log_write_idx(0, L);
-    //if (me() == 0)sk_log_write_idx(1, R);
     while(1) 
     { 
 	    // Locate the address of the mid mram block 

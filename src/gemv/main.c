@@ -25,8 +25,8 @@
 #endif
 
 /* SK log (8 qwords) */
-#define LOG_WORDS 8
-#define LOG_MAGIC 0x534B4C4F475631ULL /* "SKLOGV1" */
+//#define LOG_WORDS 8
+//#define LOG_MAGIC 0x534B4C4F475631ULL /* "SKLOGV1" */
 
 typedef struct { volatile uint32_t v; uint32_t pad; } barrier_slot_t;
 
@@ -214,26 +214,12 @@ int main(void) {
     }
 
     mybarrier_wait();
-    uint32_t t1 = perfcounter_get();
+    //uint32_t t1 = perfcounter_get();
 
-    tl_cycles[tasklet_id] = t1 - t0;
-    mybarrier_wait();
+    //tl_cycles[tasklet_id] = t1 - t0;
+    //mybarrier_wait();
 
     if (tasklet_id == 0) {
-        uint64_t mx = 0;
-        for (int t = 0; t < NR_TASKLETS; t++) {
-            if (tl_cycles[t] > mx) mx = tl_cycles[t];
-        }
-
-        sk_log_write_idx(0, LOG_MAGIC);
-        sk_log_write_idx(1, mx);
-        sk_log_write_idx(2, (uint64_t)t0);
-        sk_log_write_idx(3, (uint64_t)t1);
-        sk_log_write_idx(4, ((uint64_t)(uint32_t)n_size << 32) | (uint32_t)n_size_pad);
-        sk_log_write_idx(5, (uint64_t)nr_rows);
-        sk_log_write_idx(6, (uint64_t)NR_TASKLETS);
-        sk_log_write_idx(7, 1ULL);
-
         __ime_wait_for_host();
     }
 

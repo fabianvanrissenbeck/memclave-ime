@@ -1,6 +1,5 @@
 /* support/mc_sync.h
  * Minimal sync primitives for Memclave subkernels.
- * APIs (stable/backportable):
  *   void mybarrier_init(void);
  *   void mybarrier_wait(void);
  *   void handshake_init(void);
@@ -9,12 +8,6 @@
  * Usage notes:
  *  - Requires NR_TASKLETS to be defined by the including TU.
  *  - Include after support/common.h so typedef T is visible.
- *  - For the mailbox/epoch handshake: at the start of each “round”
- *      if (me() == 0) { g_epoch++; mc_fence(); }
- *      mybarrier_wait();
- *    then call handshake_sync(...) per tasklet.
- *  - To use UPMEM's handshake API instead, define USE_UPMEM_HANDSHAKE and
- *    provide MC_TASKLET_SYSNAME(id) that maps a tasklet index to sysname_t.
  */
 
 #ifndef MC_SYNC_H

@@ -74,9 +74,6 @@ int main_kernel1() {
 #if PRINT
     printf("tasklet_id = %u\n", tasklet_id);
 #endif
-    //dpu_arguments_t args;
-    //mram_read((__mram_ptr void const*)ARG_OFFSET, &args, sizeof(args));
-    //read_args_aligned(&args);
 
     const uint32_t input_size_bytes = args.size;
     const uint32_t A_base = (uint32_t)A_OFFSET;
@@ -108,7 +105,6 @@ int main_kernel1() {
 	T next_block_accum = 0;
         T p_count = handshake_sync(l_count, tasklet_id, &next_block_accum);
 
-        // Barrier
 	mybarrier_wait();
 
         // Add in each tasklet

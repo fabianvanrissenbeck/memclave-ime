@@ -10,74 +10,21 @@
 #include <perfcounter.h>
 #include <barrier.h>
 
+#define NR_TASKLETS  16
 #include "support/common.h"
 #include "support/log.h"
+#include "support/mc_sync.h"
 
-#define NR_TASKLETS  16
 
 #define ARG_OFFSET   0x2000
 #define ARG_SIZE     sizeof(dpu_arguments_t)
 // align args to 0x100 boundary for safety
 #define A_OFFSET     (ARG_OFFSET + ((ARG_SIZE + 0xFF) & ~0xFF))
 
-typedef struct { volatile uint32_t v; uint32_t pad; } barrier_slot_t;
-
-__attribute__((aligned(8)))
-static struct {
-    barrier_slot_t arrive[NR_TASKLETS];
-    volatile uint32_t sense;   // toggles 0/1 each barrier
-} gbar;
-
-// Call once at start (before first use)
-static inline __attribute__((always_inline, optimize("O3")))
-void mybarrier_init(void) {
-    if (me() == 0) {
-        gbar.sense = 0;
-        // Initialize slots to the *opposite* of sense so first wait() completes correctly
-        for (uint32_t i = 0; i < NR_TASKLETS; i++) gbar.arrive[i].v = 1;
-        // Compiler fence so nobody hoists loads/stores around the init
-        __asm__ __volatile__("" ::: "memory");
-    }
-    // Make sure all tasklets see initialized state (local spin; cheap)
-    // Each non-zero tasklet waits until sense is 0 (already true),
-    // but this also prevents later code from reordering across init.
-    while (gbar.sense != 0) { __asm__ __volatile__("" ::: "memory"); }
-}
-
-static inline __attribute__((always_inline, optimize("O3")))
-void mybarrier_wait(void) {
-    const uint32_t tid      = me();
-    const uint32_t next_s   = !gbar.sense;      // local snapshot of the target sense
-
-    // Arrive: single-writer per slot, no atomics needed
-    gbar.arrive[tid].v = next_s;
-    __asm__ __volatile__("" ::: "memory");      // prevent store/load reordering
-
-    if (tid == 0) {
-        // Wait for all slots to match next_s (unrolled a bit to cut loop overhead)
-        for (uint32_t i = 0; i < NR_TASKLETS; i++) {
-            while (__builtin_expect(gbar.arrive[i].v != next_s, 1)) {
-                __asm__ __volatile__("" ::: "memory");
-            }
-        }
-        // Release: flip the global sense (single writer)
-        gbar.sense = next_s;
-        __asm__ __volatile__("" ::: "memory");
-    } else {
-        // Others: wait for the global sense flip
-        while (__builtin_expect(gbar.sense != next_s, 1)) {
-            __asm__ __volatile__("" ::: "memory");
-        }
-    }
-}
-
 // Array for communication between adjacent tasklets
 uint32_t* message[NR_TASKLETS];
 // DPU histogram
 uint32_t* histo_dpu;
-
-// Barrier
-//BARRIER_INIT(my_barrier, NR_TASKLETS);
 
 // Histogram in each tasklet
 static void histogram(uint32_t* histo, uint32_t bins, T *input, unsigned int l_size){
@@ -87,16 +34,7 @@ static void histogram(uint32_t* histo, uint32_t bins, T *input, unsigned int l_s
     }
 }
 
-//extern int main_kernel1(void);
-
-//int (*kernels[nr_kernels])(void) = {main_kernel1};
-
-//int main_kernel1(void) { 
-//    // Kernel
-//    return kernels[DPU_INPUT_ARGUMENTS.kernel](); 
-//}
-
-// main_kernel1
+// main
 int main() {
     unsigned int tasklet_id = me();
 #if PRINT
@@ -119,8 +57,6 @@ int main() {
 
     // Address of the current processing block in MRAM
     uint32_t base_tasklet = tasklet_id << BLOCK_SIZE_LOG2;
-    //uint32_t mram_base_addr_A = (uint32_t)DPU_MRAM_HEAP_POINTER;
-    //uint32_t mram_base_addr_histo = (uint32_t)(DPU_MRAM_HEAP_POINTER + input_size_dpu_bytes_transfer);
     uint32_t mram_base_addr_A = (uint32_t) A_OFFSET;
     uint32_t mram_base_addr_histo = (uint32_t) (A_OFFSET + input_size_dpu_bytes_transfer);
 
@@ -168,14 +104,13 @@ int main() {
 
     // Write dpu histogram to current MRAM block
     if(tasklet_id == 0){
-
-    uint64_t count_sum = 0;
-    for (unsigned i = 0; i < bins; ++i) count_sum += histo_dpu[i];
+        uint64_t count_sum = 0;
+        for (unsigned i = 0; i < bins; ++i) count_sum += histo_dpu[i];
 	
-    sk_log_write_idx(4, count_sum);
-    sk_log_write_idx(1, (uint64_t)histo_dpu[0]);
-    sk_log_write_idx(2, (uint64_t)histo_dpu[1]);
-    sk_log_write_idx(3, (uint64_t)histo_dpu[2]);
+        sk_log_write_idx(4, count_sum);
+        sk_log_write_idx(1, (uint64_t)histo_dpu[0]);
+        sk_log_write_idx(2, (uint64_t)histo_dpu[1]);
+        sk_log_write_idx(3, (uint64_t)histo_dpu[2]);
         if(bins * sizeof(uint32_t) <= 2048)
             mram_write(histo_dpu, (__mram_ptr void*)(mram_base_addr_histo), bins * sizeof(uint32_t));
         else 
@@ -183,9 +118,6 @@ int main() {
                 mram_write(histo_dpu + (offset << 9), (__mram_ptr void*)(mram_base_addr_histo + (offset << 11)), 2048);
             }
         sk_log_write_idx(0, 0xaaaa);
-        //sk_log_write_idx(1, (uint64_t) bins);
-        //sk_log_write_idx(2, (uint64_t) args.size);
-        //sk_log_write_idx(3, (uint64_t) args.transfer_size);
         __ime_wait_for_host();
     }
 

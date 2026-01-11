@@ -7,8 +7,8 @@ typedef struct {
     uint32_t n_size_pad;
     uint32_t nr_rows;
     uint32_t max_rows;
-    uint64_t spin_cycles;
-    uint64_t dummy;
+    //uint64_t spin_cycles;
+    //uint64_t dummy;
 } dpu_arguments_t;
 
 // Specific information for each DPU
@@ -35,7 +35,7 @@ struct dpu_info_t *dpu_info;
 #endif
 
 // Data type
-#define T int32_t
+#define T uint32_t
 
 #ifndef ENERGY
 #define ENERGY 0

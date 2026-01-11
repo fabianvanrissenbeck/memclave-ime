@@ -13,10 +13,11 @@
 #include <mutex.h>
 #include <atomic_bit.h>
 
+#define NR_TASKLETS 16
 #include "support/common.h"
 #include "support/log.h"
+#include "support/mc_sync.h"
 
-#define NR_TASKLETS 16
 #define NR_HISTO 1
 #define ARG_OFFSET  0x2000
 #define ARG_SIZE    sizeof(dpu_arguments_t)
@@ -28,42 +29,6 @@ void read_args_aligned(dpu_arguments_t *args) {
     _Alignas(8) uint8_t buf[(sizeof(dpu_arguments_t) + 7u) & ~7u];
     mram_read((__mram_ptr void const*)ARG_OFFSET, buf, sizeof(buf));
     __builtin_memcpy(args, buf, sizeof(dpu_arguments_t));
-}
-
-typedef struct { volatile uint32_t v; uint32_t pad; } barrier_slot_t;
-__attribute__((aligned(8)))
-static struct {
-    barrier_slot_t arrive[NR_TASKLETS];
-    volatile uint32_t sense;
-} gbar;
-
-static inline __attribute__((always_inline)) void mc_fence(void) {
-    __asm__ __volatile__("" ::: "memory");
-}
-
-static inline void mybarrier_init(void) {
-    if (me() == 0) {
-        gbar.sense = 0;
-        for (uint32_t i = 0; i < NR_TASKLETS; i++) gbar.arrive[i].v = 1;
-        mc_fence();
-    }
-    while (gbar.sense != 0) { mc_fence(); }
-}
-
-static inline void mybarrier_wait(void) {
-    const uint32_t tid  = me();
-    const uint32_t next = !gbar.sense;
-    gbar.arrive[tid].v = next;
-    mc_fence();
-
-    if (tid == 0) {
-        for (uint32_t i = 0; i < NR_TASKLETS; i++)
-            while (gbar.arrive[i].v != next) { mc_fence(); }
-        gbar.sense = next;
-        mc_fence();
-    } else {
-        while (gbar.sense != next) { mc_fence(); }
-    }
 }
 
 #define NR_L_TASKLETS (NR_TASKLETS / NR_HISTO)

@@ -12,7 +12,6 @@
 #include <perfcounter.h>
 
 #define T size_t
-//#define SK_LOG_ENABLED 1
 #define NR_TASKLETS 16
 #include "dpu-utils.h"
 #include "support/common.h"
@@ -29,9 +28,7 @@ int main() {
         mybarrier_init();
         mem_reset();
         sk_log_init();
-        //perfcounter_config(COUNT_CYCLES, true);
     }
-    //for (int i = 0; i < 100; i++);
 
     // Load parameters from MRAM
     struct DPUParams* params_w =
@@ -41,7 +38,6 @@ int main() {
               ROUND_UP_TO_MULTIPLE_OF_8(sizeof(struct DPUParams)));
 
     mybarrier_wait();
-    //uint32_t s = perfcounter_get();
 
     // Extract params
     const uint32_t numGlobalNodes  = params_w->numNodes;
@@ -73,7 +69,6 @@ int main() {
     }
     mybarrier_wait();
 
-    // ---- Phase 1: Update visited, clear nextFrontier, build currentFrontier + nodeLevel (local) ----
     for (uint32_t tile = me(); tile < globalWords; tile += NR_TASKLETS) {
 
         uint64_t nf = load8B(nextFrontier_m, tile, cache_w);
@@ -110,7 +105,6 @@ int main() {
 
     mybarrier_wait();
 
-    // ---- Phase 2: Visit neighbors (only if this DPU has nodes) -> write into private shard ----
     if (numNodes > 0) {
         const uint32_t numNodesPerTasklet = (numNodes + NR_TASKLETS - 1) / NR_TASKLETS;
         const uint32_t taskletNodesStart  = me() * numNodesPerTasklet;
@@ -149,7 +143,6 @@ int main() {
 
     mybarrier_wait();
 
-    // ---- Phase 3: Reduce NR_TASKLETS shards -> global nextFrontier_m ----
     for (uint32_t w = me(); w < globalWords; w += NR_TASKLETS) {
         uint64_t acc = 0;
         for (uint32_t t = 0; t < NR_TASKLETS; ++t) {
@@ -160,21 +153,5 @@ int main() {
     }
 
     mybarrier_wait();
-
-    // ---- timing + log ----
-    //uint32_t e = perfcounter_get();
-    //tl_cycles[me()] = (uint64_t)(e - s);
-    mybarrier_wait();
-
-    if (me() == 0) {
-        uint64_t mx = 0;
-        //for (int t = 0; t < NR_TASKLETS; ++t) if (tl_cycles[t] > mx) mx = tl_cycles[t];
-
-        //sk_log_write_idx(0, 0xffffULL);
-        //sk_log_write_idx(1, mx);
-        //sk_log_write_idx(2, (uint64_t)s);
-        //sk_log_write_idx(7, 1ULL);
-    }
-
     return 0;
 }

@@ -14,7 +14,7 @@
 #define NR_TASKLETS 16
 
 #include "support/common.h"
-#include "support/mc_sync.h"   // mybarrier_* and g_epoch (epoch handshake base)
+#include "support/mc_sync.h"
 #include "support/log.h"       // sk_log_init / sk_log_write_idx
 
 #define ARG_OFFSET  0x2000u
@@ -93,10 +93,10 @@ int main(void) {
 
     if (me() == 0) {
         mybarrier_init();
-        handshake_init();   /* sets g_epoch=1; mailbox arrays zeroed by BSS */
+        handshake_init();   /* sets g_epoch=1 */
         sk_log_init();
         message_partial_count = 0;
-        message_last_from_last = (T)~(T)0; /* sentinel: all-ones */
+        message_last_from_last = (T)~(T)0;
     }
     mybarrier_wait();
 
@@ -132,7 +132,7 @@ int main(void) {
 	mram_read((const __mram_ptr void *)(A_base + byte_index), cache_A, BLOCK_SIZE);
 
         // UNI in each tasklet
-        unsigned int l_count = unique(cache_B, cache_A); // In-place or out-of-place?
+        unsigned int l_count = unique(cache_B, cache_A);
 
         // Sync with adjacent tasklets
 	const uint3 po = handshake_sync_uni(cache_B, l_count, tasklet_id);
