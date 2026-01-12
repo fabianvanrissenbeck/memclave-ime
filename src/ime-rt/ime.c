@@ -4,7 +4,7 @@
 #include <mutex.h>
 
 MUTEX_INIT(__ime_tasklet_lock);
-extern volatile uint32_t __ime_tasklet_count;
+static uint32_t __ime_tasklet_count = NR_TASKLETS;
 
 __attribute__((section(".data.persist.last"))) ime_load_params g_load_prop = { 0 };
 

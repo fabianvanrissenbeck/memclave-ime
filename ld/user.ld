@@ -48,11 +48,4 @@ SECTIONS
     __ime_user_end = .;
     . = ALIGN(2048);
   } > iram
-
-  .data 0x0 : {
-    __ime_tasklet_count = .;
-    LONG(NR_TASKLETS);
-    *(.data)
-    *(.data.*)
-  } > wram
 }
