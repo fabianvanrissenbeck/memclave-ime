@@ -6,19 +6,21 @@ __bootstrap:
     jump zero, core_on_replace
     jump zero, core_on_signal
     jump zero, core_on_counter
-    jump zero, core_on_chacha
+    jump zero, ime_chacha_blk
     jump zero, poly_init
     jump zero, poly_feed_block
     jump zero, poly_finalize
 
 core_on_boot:
     xor zero, id, 23, z, core_on_ctr_thread
-    xor zero, id, 22, z, core_on_chacha_thread
+    xor zero, id, 22, z, ime_chacha_thread
 
     /* when the ci-switch resolves a fault it starts the faulting thread at pc=0. Handle this case */
     xor zero, lneg, r23, z, core_on_sigret
 
     xor zero, id, 0x0, z, core_cont_boot
+    move r20, 4096 * 8
+    move r21, 64 * 1024 * 1024
     stop true, __ime_user_start
 
 core_cont_boot:
@@ -95,9 +97,3 @@ core_on_ctr_thread:
     sw r4, 60, 0x0
 
     stop t, __bootstrap
-
-core_on_chacha_thread:
-    jump ime_chacha_thread
-
-core_on_chacha:
-    jump ime_chacha_blk

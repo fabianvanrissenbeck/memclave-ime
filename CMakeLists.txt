@@ -3,7 +3,7 @@ project(ime C ASM)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(ime src/core/core.s src/core/core.h src/core/core_util.s src/core/core_crypt.c src/core/core_iram.s src/core/core_load.S src/core/core_mem.s src/core/core_scan.c src/core/core_thrd.s src/core/core_wram.s src/core/aead.c src/core/aead.h src/core/chacha.S src/poly/poly.c src/poly/poly.h src/poly/poly.S src/core/core_stats.c)
+add_executable(ime src/core/core.s src/core/core.h src/core/core_util.s src/core/core_crypt.c src/core/core_iram.s src/core/core_load.S src/core/core_mem.s src/core/core_scan.c src/core/core_thrd.s src/core/core_wram.s src/core/aead.c src/core/aead.h src/core/chacha.S src/poly/poly.c src/poly/poly.h src/poly/poly.S src/core/core_stats.S)
 target_compile_options(ime PRIVATE -Os)
 target_include_directories(ime PRIVATE src/common)
 target_compile_definitions(ime PRIVATE -DIME_REPORT_STATS=0)

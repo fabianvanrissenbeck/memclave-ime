@@ -85,11 +85,7 @@ void noreturn ime_sec_fault(void);
 void noreturn ime_sanity_fault(void);
 
 #if IME_REPORT_STATS == 1
-
-void ime_init_stats(void);
-
 void ime_stats_here(void);
-
 #endif
 
 #endif

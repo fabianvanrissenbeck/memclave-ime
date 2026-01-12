@@ -17,12 +17,17 @@ ime_replace_sk:
     move r21, r0
 
 #if IME_REPORT_STATS == 1
-    move r22, __sys_stack_thread_0
-    call r23, ime_init_stats
+    move r0, 0x3
+    time_cfg zero, r0
 #endif
 
     call r23, ime_check_threads
     call r23, ime_wipe_user
+
+#if IME_REPORT_STATS == 1
+    move r22, __sys_stack_thread_0
+    call r23, ime_stats_here
+#endif
 
     /*
      * ime_decrypt_sk and ime_scan_sk are implemented in c and strictly require a correctly setup
@@ -31,18 +36,15 @@ ime_replace_sk:
      * of WRAM are not used by them for anything persistent.
      */
 
-#if IME_REPORT_STATS == 1
-    move r22, __sys_stack_thread_0
-    call r23, ime_stats_here // unload time
-#endif
-
     move r0, r21
     call r23, ime_push_sk
 
     // deploy stack canary
+#if IME_REPORT_STATS == 0
     move r0, 0xef11b0d9
     move r22, __sys_stack_thread_0
     sw r22, STACK_SIZE_TASKLET_0 - 4, r0
+#endif
 
     move r0, r21
     move r1, r18
@@ -51,7 +53,7 @@ ime_replace_sk:
     call r23, ime_decrypt_sk
 
 #if IME_REPORT_STATS == 1
-    call r23, ime_stats_here // decrypt time
+    call r23, ime_stats_here
 #endif
 
     move r0, r21
@@ -59,20 +61,26 @@ ime_replace_sk:
     call r23, ime_scan_sk
 
 #if IME_REPORT_STATS == 1
-    call r23, ime_stats_here // scan time
+    call r23, ime_stats_here
 #endif
 
     // check stack canary
+#if IME_REPORT_STATS == 0
     move r22, __sys_stack_thread_0
     lw r0, r22, STACK_SIZE_TASKLET_0 - 4
     move r1, 0xef11b0d9
     xor r0, r0, r1, nz, ime_sec_fault
+#endif
 
     call r23, ime_load_wram
     call r23, ime_load_iram
 
     call r23, ime_pop_sk
 
+    // if stats are enabled, some security mechanisms
+    // are disabled to get some extra IRAM space
+    // for production, do not build with REPORT_STATS on
+#if IME_REPORT_STATS == 0
     add.u d0, zero, 0x0, z
     add.u d2, zero, 0x0, z
     add.u d4, zero, 0x0, z
@@ -84,6 +92,7 @@ ime_replace_sk:
     add.u d16, zero, 0x0, z
     add.u d18, zero, 0x0, z
     add.u d22, zero, 0x0, z
+#endif
 
     move r0, NR_TASKLETS
 resume_loop:
