@@ -1,43 +1,34 @@
 #include <ime.h>
 #include <defs.h>
-#include <stddef.h>
-#include <assert.h>
-#include <perfcounter.h>
+#include <stdint.h>
 
-#include "../poly/poly.h"
+// include random stuff to increase .text size
+#include <aead.h>
+#include <buddy_alloc.h>
 
-#define SK_ADDR ((void __mram_ptr*) (63 << 20))
-#define OUTPUT ((uint64_t __mram_ptr*) ((64 << 20) - 64))
+__mram volatile uint32_t g_stats[4];
 
-enum {
-    FIRST_INVOC = 0x30130bc26bfae030,
-    SECOND_INVOC = 0xfc2ab8326bb5040a
-};
+void never_actually_called(void) {
+    // increases .data size
+    volatile static uint32_t data[2048] = { 1 };
+    data[me()] = 123;
 
-__mram uint64_t is_first_invoc;
-volatile uint32_t data[2048] = { 1 };
+    // increases .text size
+    ime_aead_enc(NULL, NULL, 0, NULL, NULL, NULL, NULL);
+    buddy_alloc(123);
+}
 
 int main(void) {
-    if (me() >= 24) {
-        poly_init(NULL, NULL);
-        poly_feed_block(NULL, NULL);
-        poly_finalize(NULL, NULL);
+    if (me() > 24) {
+        never_actually_called();
     }
 
-    if (is_first_invoc == SECOND_INVOC) {
-        uint64_t tm = perfcounter_get();
-        is_first_invoc = FIRST_INVOC;
+    // The TL (if in IME_REPORT_STATS mode) puts some stats
+    // into the debug section im MRAM. Pull it out so that
+    // returning to MSG does not clear this data.
 
-        OUTPUT[0] = tm;
-        asm("stop");
-    } else {
-        for (int i = 1; i < 2048; ++i) {
-            assert(data[i] == 0);
-        }
-
-        perfcounter_config(COUNT_CYCLES, true);
-        is_first_invoc = SECOND_INVOC;
+    for (int i = 0; i < 4; i++) {
+        // account for "imprecision" of time
+        g_stats[i] = __ime_debug_out[i] << 4;
     }
-
-    return 0;
 }
