@@ -59,7 +59,6 @@ static inline void wait_for_host_and_fetch_ctrl(void) {
 
 // GEMV
 static inline void gemv(T *bufferC, T *bufferA, T *bufferB, int pos) {
-	//#pragma unroll
 	for (unsigned int i = 0; i < BLOCK_SIZE / sizeof(T); i++) {
 		bufferC[pos] += bufferA[i] * bufferB[i];
 	}
@@ -85,20 +84,17 @@ int main() {
         wait_for_host_and_fetch_ctrl();
     }
     ime_barrier_wait(&bench_barrier);
-
     while (1) {
         if (g_ctrl.cmd == CMD_EXIT) break;
+        dpu_arguments_t args;
+        read_args(&args);
+        ime_barrier_wait(&bench_barrier);
        
         if (tasklet_id == 0) {
             mem_reset();
             g_ctrl.status = ST_RUNNING;
             mram_write(&g_ctrl, (__mram_ptr void*)CTRL_OFFSET, sizeof(g_ctrl));
         }
-        ime_barrier_wait(&bench_barrier);
-       
-        dpu_arguments_t args;
-        read_args(&args);
-       
         ime_barrier_wait(&bench_barrier);
        
         int32_t  n_size     = args.n_size;
@@ -204,9 +200,9 @@ int main() {
         }
         ime_barrier_wait(&bench_barrier);
 	if (tasklet_id == 0) {
-            g_ctrl.status = ST_DONE;
+            wait_for_host_and_fetch_ctrl();
+            g_ctrl.status = ST_RUNNING;
             mram_write(&g_ctrl, (__mram_ptr void*)CTRL_OFFSET, sizeof(g_ctrl));
-            wait_for_host_and_fetch_ctrl();     // yield until host sets up next layer or EXIT
         }
        ime_barrier_wait(&bench_barrier);
     }

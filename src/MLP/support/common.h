@@ -19,7 +19,7 @@ struct dpu_info_t {
 };
 struct dpu_info_t *dpu_info;
 
-#define NUM_LAYERS 3 
+#define NUM_LAYERS 3
 #define max(x, y) (x > y ? x : y)
 #define min(x, y) (x < y ? x : y)
 
