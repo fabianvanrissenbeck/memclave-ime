@@ -104,6 +104,27 @@ add_executable(nw-example src/NW/main.c)
 target_link_libraries(nw-example PUBLIC ime-rt)
 target_link_options(nw-example PUBLIC -DNR_TASKLETS=16)
 
+add_custom_target(prim-subkernels)
+
+add_dependencies(prim-subkernels
+	gemv-example
+	mlp-example
+	bfs-example
+	va-example
+	hsts-example
+	hstl-example
+	scanssa-example
+	scanrss-example
+	red-example
+	trns-example
+	sel-example
+	uni-example
+	bs-example
+	ts-example
+	spmv-example
+	nw-example
+)
+
 add_executable(msg src/msg/main.c)
 target_link_libraries(msg PUBLIC ime-rt)
 target_link_options(msg PUBLIC -DNR_TASKLETS=1)
