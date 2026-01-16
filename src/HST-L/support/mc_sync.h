@@ -33,31 +33,22 @@ __attribute__((aligned(8)))
 static struct {
     mc_bar_slot_t arrive[NR_TASKLETS];
     volatile uint32_t sense;
-    volatile uint32_t init_done;
 } mc_barrier;
 
 static inline __attribute__((always_inline)) void mybarrier_init(void) {
     if (me() == 0) {
         mc_barrier.sense = 0;
-        mc_barrier.init_done = 0;
-        for (uint32_t i = 0; i < NR_TASKLETS; i++)
-            mc_barrier.arrive[i].v = mc_barrier.sense;  // <-- critical change
+        for (uint32_t i = 0; i < NR_TASKLETS; i++) mc_barrier.arrive[i].v = 1;
         mc_fence();
-        mc_barrier.init_done = 1;
-        mc_fence();
-    } else {
-        while (mc_barrier.init_done == 0) { mc_fence(); }
     }
+    while (mc_barrier.sense != 0) { mc_fence(); }
 }
 
 static inline __attribute__((always_inline)) void mybarrier_wait(void) {
-    while (mc_barrier.init_done == 0) { mc_fence(); }  // safety
     const uint32_t tid   = me();
     const uint32_t nextS = !mc_barrier.sense;
-
     mc_barrier.arrive[tid].v = nextS;
     mc_fence();
-
     if (tid == 0) {
         for (uint32_t i = 0; i < NR_TASKLETS; i++)
             while (mc_barrier.arrive[i].v != nextS) { mc_fence(); }
